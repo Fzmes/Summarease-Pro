@@ -154,10 +154,15 @@ class SummarizationApp:
                 st.session_state[key] = value
 
     def health_check(self):
-        """Vérifie l'état de santé des modèles"""
+        """Vérifie l'état de santé des modèles - CORRIGÉ avec texte plus long"""
         try:
-            test_text = "This is a test for health check."
-            result = self.models.summarize_text(test_text, "anglais", "court")
+            # Texte de test plus long pour éviter l'erreur "texte trop court"
+            test_text = """
+            Ceci est un texte de test pour vérifier le bon fonctionnement des modèles de résumé et de traduction. 
+            Il contient suffisamment de contenu pour être traité par l'algorithme et assurer que tout fonctionne correctement.
+            Le système doit être capable de générer un résumé cohérent à partir de ce contenu de test.
+            """
+            result = self.models.summarize_text(test_text, "français", "court")
             return len(result) > 0
         except Exception as e:
             logger.error(f"Health check failed: {e}")
@@ -256,7 +261,7 @@ class SummarizationApp:
         try:
             start_time = time.time()
             
-            # Validation et limitation du texte
+            # Validation et limitation du texte - CORRIGÉ : vérification caractères
             if len(text.strip()) < 50:
                 raise ValueError("Le texte est trop court (minimum 50 caractères)")
             
@@ -342,8 +347,9 @@ class SummarizationApp:
         if model_status["models_loaded"]:
             st.success("✅ **Système optimisé chargé avec succès**")
             
-            # Test de santé
-            if self.health_check():
+            # Test de santé - avec gestion d'erreur améliorée
+            health_status = self.health_check()
+            if health_status:
                 st.success("✅ **Test de santé réussi**")
             else:
                 st.warning("⚠️ **Problème détecté dans les modèles**")
@@ -391,9 +397,13 @@ class SummarizationApp:
                 key="manual_text_area"
             )
             if input_text.strip():
-                st.session_state.extracted_text = input_text
-                extraction_success = True
-                st.success("✅ Texte prêt pour le traitement!")
+                # Vérification de la longueur minimale
+                if len(input_text.strip()) >= 50:
+                    st.session_state.extracted_text = input_text
+                    extraction_success = True
+                    st.success("✅ Texte prêt pour le traitement!")
+                else:
+                    st.warning("⚠️ Le texte est trop court (minimum 50 caractères)")
             
         elif input_method == "🔗 Lien Web":
             st.markdown("#### 🌐 Extraction à partir d'une URL")
@@ -411,18 +421,23 @@ class SummarizationApp:
                             st.session_state.url_content = extracted_content
                             
                             if not any(error in extracted_content.lower() for error in ["erreur", "aucun contenu", "trop court", "protégé"]):
-                                st.session_state.extracted_text = extracted_content
-                                extraction_success = True
-                                st.markdown('<div class="extraction-success">✅ Contenu extrait avec succès!</div>', unsafe_allow_html=True)
-                                
-                                with st.expander("📄 Aperçu du contenu extrait", expanded=True):
-                                    word_count = len(extracted_content.split())
-                                    st.metric("Nombre de mots", word_count)
-                                    st.text_area("Contenu:", 
-                                               extracted_content[:1500] + "..." if len(extracted_content) > 1500 else extracted_content, 
-                                               height=200, 
-                                               key="preview_area",
-                                               label_visibility="collapsed")
+                                if len(extracted_content.strip()) >= 50:
+                                    st.session_state.extracted_text = extracted_content
+                                    extraction_success = True
+                                    st.markdown('<div class="extraction-success">✅ Contenu extrait avec succès!</div>', unsafe_allow_html=True)
+                                    
+                                    with st.expander("📄 Aperçu du contenu extrait", expanded=True):
+                                        word_count = len(extracted_content.split())
+                                        char_count = len(extracted_content)
+                                        st.metric("Nombre de mots", word_count)
+                                        st.metric("Nombre de caractères", char_count)
+                                        st.text_area("Contenu:", 
+                                                   extracted_content[:1500] + "..." if len(extracted_content) > 1500 else extracted_content, 
+                                                   height=200, 
+                                                   key="preview_area",
+                                                   label_visibility="collapsed")
+                                else:
+                                    st.error("❌ Le contenu extrait est trop court (moins de 50 caractères)")
                             else:
                                 st.error(f"❌ {extracted_content}")
                     else:
@@ -446,8 +461,8 @@ class SummarizationApp:
                             if extracted:
                                 text_content += extracted + "\n\n"
 
-                    if len(text_content.strip()) < 20:
-                        st.error("❌ Le fichier PDF ne contient pas de texte extractible (scanné ou protégé).")
+                    if len(text_content.strip()) < 50:  # Corrigé : 50 caractères au lieu de 20
+                        st.error("❌ Le fichier PDF ne contient pas assez de texte extractible (minimum 50 caractères).")
                     else:
                         st.session_state.extracted_text = text_content
                         extraction_success = True
@@ -455,7 +470,9 @@ class SummarizationApp:
 
                         with st.expander("📄 Aperçu du PDF extrait"):
                             word_count = len(text_content.split())
+                            char_count = len(text_content)
                             st.metric("Nombre de mots", word_count)
+                            st.metric("Nombre de caractères", char_count)
                             st.text_area(
                                 "Contenu extrait :",
                                 text_content[:1500] + "..." if len(text_content) > 1500 else text_content,
@@ -476,17 +493,22 @@ class SummarizationApp:
                 try:
                     if uploaded_file.type == "text/plain":
                         input_text = uploaded_file.getvalue().decode("utf-8")
-                        st.session_state.extracted_text = input_text
-                        extraction_success = True
-                        st.success(f"✅ Fichier '{uploaded_file.name}' chargé avec succès!")
-                        
-                        with st.expander("📄 Aperçu du fichier"):
-                            word_count = len(input_text.split())
-                            st.metric("Nombre de mots", word_count)
-                            st.text_area("Contenu:", 
-                                       input_text[:1500] + "..." if len(input_text) > 1500 else input_text, 
-                                       height=200,
-                                       label_visibility="collapsed")
+                        if len(input_text.strip()) >= 50:
+                            st.session_state.extracted_text = input_text
+                            extraction_success = True
+                            st.success(f"✅ Fichier '{uploaded_file.name}' chargé avec succès!")
+                            
+                            with st.expander("📄 Aperçu du fichier"):
+                                word_count = len(input_text.split())
+                                char_count = len(input_text)
+                                st.metric("Nombre de mots", word_count)
+                                st.metric("Nombre de caractères", char_count)
+                                st.text_area("Contenu:", 
+                                           input_text[:1500] + "..." if len(input_text) > 1500 else input_text, 
+                                           height=200,
+                                           label_visibility="collapsed")
+                        else:
+                            st.warning("⚠️ Le fichier contient moins de 50 caractères")
                             
                 except Exception as e:
                     st.error(f"❌ Erreur lors du chargement du fichier: {str(e)}")
@@ -548,6 +570,7 @@ class SummarizationApp:
                     st.error("❌ Veuillez sélectionner au moins une langue cible")
                     return
                 
+                # Vérification finale de la longueur
                 if len(st.session_state.extracted_text.strip()) < 50:
                     st.error("❌ Le texte est trop court pour être traité (minimum 50 caractères)")
                     return
@@ -757,7 +780,8 @@ class SummarizationApp:
                 st.markdown("---")
                 st.markdown("### 📝 Texte Chargé")
                 word_count = len(st.session_state.extracted_text.split())
-                st.info(f"📄 {word_count} mots")
+                char_count = len(st.session_state.extracted_text)
+                st.info(f"📄 {word_count} mots, {char_count} caractères")
                 
             # Bouton de nettoyage mémoire
             st.markdown("---")
@@ -768,7 +792,7 @@ class SummarizationApp:
             st.markdown("---")
             st.markdown("""
             <div style='text-align: center; color: #666; font-size: 0.8rem;'>
-                v2.0 Optimisé • Gestion mémoire avancée
+                v2.1 Corrigé • Gestion mémoire avancée
             </div>
             """, unsafe_allow_html=True)
         
