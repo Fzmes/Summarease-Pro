@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import json
 import time
+import pdfplumber
 import pandas as pd
 try:
     import plotly.graph_objects as go
@@ -318,10 +319,11 @@ class SummarizationApp:
 
         input_method = st.radio(
             "Méthode de saisie :",
-            ["📝 Texte Manuel", "🔗 Lien Web", "📄 Fichier Texte"],
+            ["📝 Texte Manuel", "🔗 Lien Web", "📄 Fichier Texte", "📄 Fichier PDF"],
             horizontal=True,
             key="input_method_radio"
         )
+
         
         extraction_success = False
         
@@ -388,7 +390,46 @@ class SummarizationApp:
                 - Articles de presse
                 - Documentation technique
                 """)
-            
+        elif input_method == "📄 Fichier PDF":
+            st.markdown("#### 📄 Upload de fichier PDF")
+            uploaded_pdf = st.file_uploader(
+                "Téléchargez un fichier PDF",
+                type=['pdf'],
+                key="pdf_uploader",
+                help="Supporte les fichiers .pdf"
+            )
+
+            if uploaded_pdf:
+                try:
+                    text_content = ""
+                    with pdfplumber.open(uploaded_pdf) as pdf:
+                        for page in pdf.pages:
+                            extracted = page.extract_text()
+                            if extracted:
+                                text_content += extracted + "\n\n"
+
+                    if len(text_content.strip()) < 20:
+                        st.error("❌ Le fichier PDF ne contient pas de texte extractible (scanné ou protégé).")
+                    else:
+                        st.session_state.extracted_text = text_content
+                        extraction_success = True
+
+                        st.success(f"✅ PDF '{uploaded_pdf.name}' extrait avec succès !")
+
+                        # Aperçu du texte
+                        with st.expander("📄 Aperçu du PDF extrait"):
+                            word_count = len(text_content.split())
+                            st.metric("Nombre de mots", word_count)
+                            st.text_area(
+                                "Contenu extrait :",
+                                text_content[:1500] + "..." if len(text_content) > 1500 else text_content,
+                                height=200,
+                                label_visibility="collapsed"
+                            )
+
+                except Exception as e:
+                    st.error(f"❌ Erreur lors de la lecture du PDF : {str(e)}")
+    
         else:  # Fichier Texte
             st.markdown("#### 📄 Upload de fichier")
             uploaded_file = st.file_uploader("Téléchargez un fichier texte", 
