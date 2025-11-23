@@ -9,6 +9,11 @@ from transformers import (
     MarianTokenizer
 )
 import gc
+import warnings
+
+# Filtrer les warnings spécifiques aux transformers
+warnings.filterwarnings("ignore", message=".*early_stopping.*")
+warnings.filterwarnings("ignore", message=".*sacremoses.*")
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +144,7 @@ class MultilingualModels:
                 raise Exception("Impossible de charger les modèles essentiels")
 
         try:
-            # Validation de la longueur du texte - CORRIGÉ : caractères au lieu de mots
+            # Validation de la longueur du texte
             if len(text.strip()) < 50:
                 raise ValueError("Le texte est trop court pour être résumé (minimum 50 caractères)")
             
@@ -176,13 +181,14 @@ class MultilingualModels:
                 max_length=1024
             ).to(self.device)
             
-            # Génération du résumé - SUPPRIMER early_stopping qui cause des warnings
-            output = model.generate(
-                **inputs, 
-                max_length=max_len,
-                num_beams=4
-                # early_stopping=True  # Supprimé car cause des warnings
-            )
+            # Génération du résumé sans early_stopping
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message=".*early_stopping.*")
+                output = model.generate(
+                    **inputs, 
+                    max_length=max_len,
+                    num_beams=4
+                )
 
             return tokenizer.decode(output[0], skip_special_tokens=True)
             
@@ -227,7 +233,10 @@ class MultilingualModels:
 
             # Tokenization et traduction
             inputs = tok(text, return_tensors="pt", truncation=True, max_length=512).to(self.device)
-            out = mod.generate(**inputs)
+            
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message=".*early_stopping.*")
+                out = mod.generate(**inputs)
 
             return tok.decode(out[0], skip_special_tokens=True)
             

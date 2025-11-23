@@ -10,3 +10,4 @@ beautifulsoup4>=4.13.5
 requests-oauthlib>=2.0.0
 plotly>=5.17.0  # ← ADD THIS LINE
 pdfplumber>=0.10.3
+sacremoses>=0.0.53
