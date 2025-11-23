@@ -747,5 +747,11 @@ class SummarizationApp:
 
 # Lancement de l'application
 if __name__ == "__main__":
-    app = SummarizationApp()
-    app.run()
+    try:
+        app = SummarizationApp()
+        st.info("🚀 Starting SummarizationApp...")
+        app.run()
+        st.success("✅ App running successfully!")
+    except Exception as e:
+        st.error(f"❌ App crashed: {e}")
+        st.exception(e)
