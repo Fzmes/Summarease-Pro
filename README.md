@@ -53,8 +53,8 @@ SummarEase Pro is an advanced AI-powered web application that provides intellige
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/Fzmes/summarease-pro.git
-cd summarease-pro
+git clone https://github.com/Fzmes/Summarease-Pro.git
+cd Summarease-Pro
 ```
 
 2. **Install dependencies**
