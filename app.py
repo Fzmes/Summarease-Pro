@@ -3,13 +3,24 @@ import requests
 import json
 import time
 import pandas as pd
-import plotly.graph_objects as go
-import plotly.express as px
+try:
+    import plotly.graph_objects as go
+    import plotly.express as px
+    PLOTLY_AVAILABLE = True
+except ImportError:
+    PLOTLY_AVAILABLE = False
+    # Create dummy functions to avoid errors
+    class DummyPlotly:
+        def __getattr__(self, name):
+            return lambda *args, **kwargs: None
+    go = DummyPlotly()
+    px = DummyPlotly()
 from datetime import datetime
 import base64
 from bs4 import BeautifulSoup
 import re
 
+# Rest of your imports...
 # Import des modèles multilingues avancés
 from models import multilingual_models
 
