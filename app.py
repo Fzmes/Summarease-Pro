@@ -117,11 +117,13 @@ PRIMARY_COLOR = "#7ffbff"
 
 class SummarizationApp:
     def __init__(self):
-        self.init_session_state()
         with st.spinner("Chargement des modèles..."):
             self.models = load_models()
-            # ⚡ Forcer le chargement pour activer models_loaded = True
-            self.models.load_all()
+            try:
+                self.models.load_all()
+            except Exception as e:
+                st.error(f"❌ Erreur lors du chargement des modèles : {e}")
+
         
     def init_session_state(self):
         """Initialise l'état de la session"""
