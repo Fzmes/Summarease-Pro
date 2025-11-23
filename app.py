@@ -22,7 +22,13 @@ import re
 
 # Rest of your imports...
 # Import des modèles multilingues avancés
-from models import multilingual_models
+from models import get_multilingual_models
+
+@st.cache_resource
+def load_models():
+    return get_multilingual_models()
+
+
 
 # Configuration de la page
 st.set_page_config(
@@ -112,8 +118,8 @@ class SummarizationApp:
     def __init__(self):
         self.init_session_state()
         # Chargement des modèles multilingues
-        self.models = multilingual_models
-        
+        with st.spinner("Chargement des modèles..."):
+            self.models = load_models()        
     def init_session_state(self):
         """Initialise l'état de la session"""
         if 'history' not in st.session_state:

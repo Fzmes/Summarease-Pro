@@ -535,7 +535,8 @@ class ExtendedMultilingualModels:
         return status
 
 # Instance globale
-multilingual_models = ExtendedMultilingualModels()
+def get_multilingual_models():
+    return ExtendedMultilingualModels()
 
 """
 if __name__ == "__main__":
