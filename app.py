@@ -20,16 +20,18 @@ from datetime import datetime
 import base64
 from bs4 import BeautifulSoup
 import re
+import logging
 
-# Rest of your imports...
+# Configuration du logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Import des modèles multilingues avancés
 from models import get_multilingual_models
 
 @st.cache_resource
 def load_models():
     return get_multilingual_models()
-
-
 
 # Configuration de la page
 st.set_page_config(
@@ -109,6 +111,9 @@ st.markdown("""
     .sidebar .sidebar-content {
         background-color: #f8f9fa;
     }
+    .progress-bar {
+        margin: 1rem 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -117,37 +122,51 @@ PRIMARY_COLOR = "#7ffbff"
 
 class SummarizationApp:
     def __init__(self):
-        with st.spinner("Chargement des modèles..."):
-            self.models = load_models()
+        self.init_session_state()
+        with st.spinner("Chargement des modèles optimisés..."):
             try:
-                self.models.load_all()
+                self.models = load_models()
+                # Chargement uniquement des modèles essentiels
+                if self.models.load_essential_models():
+                    st.success("✅ Modèles essentiels chargés avec succès")
+                else:
+                    st.error("❌ Erreur lors du chargement des modèles")
             except Exception as e:
-                st.error(f"❌ Erreur lors du chargement des modèles : {e}")
+                st.error(f"❌ Erreur critique lors du chargement: {e}")
+                logger.error(f"Erreur d'initialisation: {e}")
 
         
     def init_session_state(self):
         """Initialise l'état de la session"""
-        if 'history' not in st.session_state:
-            st.session_state.history = []
-        if 'current_result' not in st.session_state:
-            st.session_state.current_result = None
-        if 'auto_demo' not in st.session_state:
-            st.session_state.auto_demo = False
-        if 'processing_complete' not in st.session_state:
-            st.session_state.processing_complete = False
-        if 'extracted_text' not in st.session_state:
-            st.session_state.extracted_text = ""
-        if 'show_processing_options' not in st.session_state:
-            st.session_state.show_processing_options = False
-        if 'url_content' not in st.session_state:
-            st.session_state.url_content = ""
+        default_states = {
+            'history': [],
+            'current_result': None,
+            'auto_demo': False,
+            'processing_complete': False,
+            'extracted_text': "",
+            'show_processing_options': False,
+            'url_content': "",
+            'processing_step': 0
+        }
+        
+        for key, value in default_states.items():
+            if key not in st.session_state:
+                st.session_state[key] = value
+
+    def health_check(self):
+        """Vérifie l'état de santé des modèles"""
+        try:
+            test_text = "This is a test for health check."
+            result = self.models.summarize_text(test_text, "anglais", "court")
+            return len(result) > 0
+        except Exception as e:
+            logger.error(f"Health check failed: {e}")
+            return False
 
     def extract_text_from_pdf_url(self, url):
         """Tente d'extraire le texte d'un PDF en ligne"""
         try:
-            # Pour les PDFs, on ne peut pas facilement extraire le texte sans bibliothèques spécialisées
-            # On retourne un message d'information
-            return f"PDF détecté à l'URL: {url}\n\nPour traiter un PDF, veuillez le télécharger et l'uploader via l'option 'Fichier Texte'."
+            return f"PDF détecté à l'URL: {url}\n\nPour traiter un PDF, veuillez le télécharger et l'uploader via l'option 'Fichier PDF'."
         except Exception as e:
             return f"Erreur avec le PDF: {str(e)}"
 
@@ -203,7 +222,7 @@ class SummarizationApp:
                 elements = soup.select(selector)
                 for element in elements:
                     text = element.get_text(strip=True)
-                    if len(text) > 100:  # Un contenu significatif
+                    if len(text) > 100:
                         text_parts.append(text)
             
             # Stratégie 2: Tous les paragraphes si la stratégie 1 échoue
@@ -211,30 +230,21 @@ class SummarizationApp:
                 paragraphs = soup.find_all('p')
                 for p in paragraphs:
                     text = p.get_text(strip=True)
-                    if len(text) > 50:  # Paragraphes significatifs
-                        text_parts.append(text)
-            
-            # Stratégie 3: Titres et sous-titres
-            if not text_parts:
-                headings = soup.find_all(['h1', 'h2', 'h3'])
-                for heading in headings:
-                    text = heading.get_text(strip=True)
-                    if len(text) > 20:
+                    if len(text) > 50:
                         text_parts.append(text)
             
             # Nettoyer et combiner le texte
             if text_parts:
                 full_text = '\n\n'.join(text_parts)
-                # Nettoyer les espaces multiples
                 full_text = re.sub(r'\s+', ' ', full_text)
                 full_text = full_text.strip()
                 
                 if len(full_text) > 100:
                     return full_text
                 else:
-                    return "Le contenu extrait est trop court. Le site peut être protégé ou utiliser du contenu dynamique."
+                    return "Le contenu extrait est trop court."
             else:
-                return "Aucun contenu textuel significatif n'a pu être extrait. Le site peut utiliser du JavaScript pour afficher le contenu."
+                return "Aucun contenu textuel significatif n'a pu être extrait."
                 
         except requests.exceptions.RequestException as e:
             return f"Erreur de connexion: {str(e)}"
@@ -244,24 +254,62 @@ class SummarizationApp:
     def process_with_models(self, text, source_lang, target_langs, summary_length):
         """Utilise les modèles avancés pour le résumé et la traduction"""
         try:
-            # Étape 1: Résumé du texte
-            summary = self.models.summarize_text(text, source_lang, summary_length)
+            start_time = time.time()
             
+            # Validation et limitation du texte
+            if len(text.strip()) < 50:
+                raise ValueError("Le texte est trop court (minimum 50 caractères)")
+            
+            if len(text) > 8000:
+                st.warning("⚠️ Le texte est très long, troncation à 8000 caractères pour optimiser les performances.")
+                text = text[:8000]
+
+            # Mise à jour de la progression
+            st.session_state.processing_step = 25
+            progress_bar = st.progress(st.session_state.processing_step)
+            
+            # Étape 1: Résumé du texte
+            with st.spinner("📝 Génération du résumé..."):
+                summary = self.models.summarize_text(text, source_lang, summary_length)
+                st.session_state.processing_step = 50
+                progress_bar.progress(st.session_state.processing_step)
+
             # Étape 2: Traductions multiples
             translations = {}
-            for target_lang in target_langs:
-                if target_lang != source_lang:  # Éviter la traduction vers la même langue
-                    translation = self.models.translate_text(summary, source_lang, target_lang)
-                    translations[target_lang] = translation
+            translation_count = len([lang for lang in target_langs if lang != source_lang])
+            current_translation = 0
             
+            for target_lang in target_langs:
+                if target_lang != source_lang:
+                    current_translation += 1
+                    with st.spinner(f"🌍 Traduction en {target_lang} ({current_translation}/{translation_count})..."):
+                        try:
+                            translation = self.models.translate_text(summary, source_lang, target_lang)
+                            translations[target_lang] = translation
+                            
+                            # Mise à jour progressive de la barre
+                            progress = 50 + (current_translation / translation_count) * 40
+                            st.session_state.processing_step = int(progress)
+                            progress_bar.progress(st.session_state.processing_step)
+                            
+                        except Exception as e:
+                            st.warning(f"⚠️ Traduction {source_lang}→{target_lang} échouée: {str(e)}")
+                            translations[target_lang] = f"[Erreur de traduction: {str(e)}]"
+
             # Métriques
+            processing_time = round(time.time() - start_time, 2)
             metrics = {
                 "original_length": len(text.split()),
                 "summary_length": len(summary.split()),
                 "reduction_percentage": round((1 - len(summary.split())/len(text.split())) * 100, 1),
-                "processing_time": 0,
+                "processing_time": processing_time,
                 "translations_count": len(translations)
             }
+            
+            # Finalisation
+            st.session_state.processing_step = 100
+            progress_bar.progress(st.session_state.processing_step)
+            time.sleep(0.5)  # Laisse le temps de voir la barre à 100%
             
             return {
                 "summary": summary,
@@ -271,14 +319,17 @@ class SummarizationApp:
             }
             
         except Exception as e:
-            st.error(f"Erreur lors du traitement: {str(e)}")
+            logger.error(f"Erreur dans process_with_models: {str(e)}")
+            st.error(f"❌ Erreur lors du traitement: {str(e)}")
             return None
+        finally:
+            # Nettoyage mémoire après traitement
+            self.models.cleanup_memory()
 
     def home_section(self):
         """Section d'accueil"""
         st.markdown('<div class="main-header">SummarEase Pro</div>', unsafe_allow_html=True)
         
-        # Afficher directement le titre
         st.markdown(f"""
         <div style='text-align: center; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; color: white;'>
             <h1 style='font-size: 2.5rem; margin-bottom: 1rem;'>Bienvenue dans SummarEase Pro</h1>
@@ -289,28 +340,29 @@ class SummarizationApp:
         # Statut des modèles
         model_status = self.models.get_model_status()
         if model_status["models_loaded"]:
-            st.success("✅ **Modèles avancés chargés avec succès**")
+            st.success("✅ **Système optimisé chargé avec succès**")
             
-            # Afficher les langues supportées
+            # Test de santé
+            if self.health_check():
+                st.success("✅ **Test de santé réussi**")
+            else:
+                st.warning("⚠️ **Problème détecté dans les modèles**")
+            
             col1, col2, col3 = st.columns(3)
             with col1:
                 st.markdown("### 🌍 Langues Supportées")
-                st.write("• Français")
-                st.write("• Anglais")
-                st.write("• Espagnol")
-                st.write("• Allemand")
-                st.write("• Arabe")
+                st.write("• Français • Anglais • Espagnol")
+                st.write("• Allemand • Arabe")
             with col2:
-                st.markdown("### 🔧 Fonctionnalités")
-                st.write("• Résumé intelligent")
-                st.write("• Traduction multilingue")
-                st.write("• Extraction web avancée")
-                st.write("• Support fichiers")
+                st.markdown("### 🔧 Optimisations")
+                st.write("• Chargement intelligent")
+                st.write("• Gestion mémoire avancée")
+                st.write("• Traitement rapide")
             with col3:
                 st.markdown("### ⚡ Performances")
                 st.write(f"• Device: {model_status['device'].upper()}")
-                st.write("• Traitement rapide")
-                st.write("• Qualité optimale")
+                st.write(f"• Modèles: {model_status['loaded_models_count']}")
+                st.write("• Mémoire optimisée")
 
     def input_section(self):
         """Section de chargement des articles"""
@@ -320,6 +372,7 @@ class SummarizationApp:
         if st.session_state.processing_complete:
             st.session_state.processing_complete = False
             st.session_state.show_processing_options = False
+            st.session_state.processing_step = 0
 
         input_method = st.radio(
             "Méthode de saisie :",
@@ -328,7 +381,6 @@ class SummarizationApp:
             key="input_method_radio"
         )
 
-        
         extraction_success = False
         
         if input_method == "📝 Texte Manuel":
@@ -358,14 +410,11 @@ class SummarizationApp:
                             extracted_content = self.scrape_web_content(url)
                             st.session_state.url_content = extracted_content
                             
-                            # Vérifier si l'extraction a réussi
                             if not any(error in extracted_content.lower() for error in ["erreur", "aucun contenu", "trop court", "protégé"]):
                                 st.session_state.extracted_text = extracted_content
                                 extraction_success = True
-                                
                                 st.markdown('<div class="extraction-success">✅ Contenu extrait avec succès!</div>', unsafe_allow_html=True)
                                 
-                                # Afficher un aperçu du contenu
                                 with st.expander("📄 Aperçu du contenu extrait", expanded=True):
                                     word_count = len(extracted_content.split())
                                     st.metric("Nombre de mots", word_count)
@@ -379,21 +428,6 @@ class SummarizationApp:
                     else:
                         st.warning("⚠️ Veuillez entrer une URL valide")
             
-            # Afficher les conseils d'extraction
-            with st.expander("💡 Conseils pour l'extraction web"):
-                st.markdown("""
-                **Pour de meilleurs résultats:**
-                - Utilisez des URLs d'articles de blog ou de news
-                - Évitez les sites nécessitant une connexion
-                - Les sites avec beaucoup de JavaScript peuvent ne pas fonctionner
-                - Les PDFs en ligne ne sont pas supportés
-                
-                **Sites recommandés:**
-                - Wikipedia.org
-                - Blog posts
-                - Articles de presse
-                - Documentation technique
-                """)
         elif input_method == "📄 Fichier PDF":
             st.markdown("#### 📄 Upload de fichier PDF")
             uploaded_pdf = st.file_uploader(
@@ -417,10 +451,8 @@ class SummarizationApp:
                     else:
                         st.session_state.extracted_text = text_content
                         extraction_success = True
-
                         st.success(f"✅ PDF '{uploaded_pdf.name}' extrait avec succès !")
 
-                        # Aperçu du texte
                         with st.expander("📄 Aperçu du PDF extrait"):
                             word_count = len(text_content.split())
                             st.metric("Nombre de mots", word_count)
@@ -446,10 +478,8 @@ class SummarizationApp:
                         input_text = uploaded_file.getvalue().decode("utf-8")
                         st.session_state.extracted_text = input_text
                         extraction_success = True
-                        
                         st.success(f"✅ Fichier '{uploaded_file.name}' chargé avec succès!")
                         
-                        # Afficher un aperçu
                         with st.expander("📄 Aperçu du fichier"):
                             word_count = len(input_text.split())
                             st.metric("Nombre de mots", word_count)
@@ -468,7 +498,7 @@ class SummarizationApp:
         if st.session_state.show_processing_options:
             self.show_processing_options()
         
-        return None, None, None, None
+        return None
 
     def show_processing_options(self):
         """Affiche les options de traitement après chargement du texte"""
@@ -491,7 +521,7 @@ class SummarizationApp:
             target_langs = st.multiselect(
                 "Langues cibles :",
                 ["français", "anglais", "espagnol", "allemand", "arabe"],
-                default=["anglais", "espagnol", "allemand"],
+                default=["anglais", "espagnol"],
                 help="Sélectionnez une ou plusieurs langues pour la traduction",
                 key="target_langs_multiselect"
             )
@@ -522,14 +552,16 @@ class SummarizationApp:
                     st.error("❌ Le texte est trop court pour être traité (minimum 50 caractères)")
                     return
                 
+                # Réinitialiser la barre de progression
+                st.session_state.processing_step = 0
+                
                 # Lancer le traitement
-                with st.spinner("Traitement en cours..."):
-                    result = self.processing_section(
-                        st.session_state.extracted_text, 
-                        source_lang, 
-                        target_langs, 
-                        summary_length
-                    )
+                result = self.processing_section(
+                    st.session_state.extracted_text, 
+                    source_lang, 
+                    target_langs, 
+                    summary_length
+                )
                 
                 if result:
                     st.session_state.current_result = result
@@ -541,6 +573,13 @@ class SummarizationApp:
     def processing_section(self, input_text, source_lang, target_langs, summary_length):
         """Section de traitement avec les modèles avancés"""
         try:
+            # Afficher la barre de progression
+            progress_placeholder = st.empty()
+            with progress_placeholder.container():
+                st.markdown("#### 📊 Progression du traitement")
+                progress_bar = st.progress(st.session_state.processing_step)
+                status_text = st.empty()
+
             # Traitement avec les modèles
             result = self.process_with_models(input_text, source_lang, target_langs, summary_length)
             
@@ -558,7 +597,11 @@ class SummarizationApp:
             
         except Exception as e:
             st.error(f"Erreur lors du traitement: {str(e)}")
+            logger.error(f"Processing error: {str(e)}")
             return None
+        finally:
+            # Nettoyer la mémoire
+            self.models.cleanup_memory()
 
     def results_section(self):
         """Section d'affichage des résultats multilingues"""
@@ -588,17 +631,15 @@ class SummarizationApp:
             st.metric("Réduction", f"{result['metrics']['reduction_percentage']}%")
         
         with col4:
-            st.metric("Traductions", f"{result['metrics']['translations_count']} langues")
+            st.metric("Temps traitement", f"{result['metrics']['processing_time']}s")
         
         # Résumé original
         st.markdown("#### 📄 Résumé Généré")
         st.markdown(f'<div class="result-card">{result["summary"]}</div>', unsafe_allow_html=True)
         
         # Traductions multilingues
-        st.markdown("#### 🌐 Traductions Multilingues")
-        
         if result['translations']:
-            # Organiser les traductions en colonnes
+            st.markdown("#### 🌐 Traductions Multilingues")
             translations = list(result['translations'].items())
             num_cols = 2
             
@@ -608,7 +649,6 @@ class SummarizationApp:
                     if i + j < len(translations):
                         lang, text = translations[i + j]
                         with cols[j]:
-                            # Style spécial pour l'arabe
                             if lang == "arabe":
                                 st.markdown(
                                     f'<div class="translation-card arabic-text">'
@@ -638,9 +678,11 @@ class SummarizationApp:
         
         with col3:
             if st.button("🔄 Nouveau traitement", use_container_width=True):
+                self.models.cleanup_memory()
                 st.session_state.current_result = None
                 st.session_state.extracted_text = ""
                 st.session_state.show_processing_options = False
+                st.session_state.processing_step = 0
                 st.rerun()
 
     def download_json(self, result):
@@ -652,15 +694,14 @@ class SummarizationApp:
 
     def download_csv(self, result):
         """Télécharge les métriques en CSV"""
-        # Préparer les données pour CSV
         data = {
             'original_length': [result['metrics']['original_length']],
             'summary_length': [result['metrics']['summary_length']],
             'reduction_percentage': [result['metrics']['reduction_percentage']],
-            'translations_count': [result['metrics']['translations_count']]
+            'translations_count': [result['metrics']['translations_count']],
+            'processing_time': [result['metrics']['processing_time']]
         }
         
-        # Ajouter les traductions
         for lang, text in result['translations'].items():
             data[f'traduction_{lang}'] = [text]
         
@@ -695,19 +736,21 @@ class SummarizationApp:
             )
             
             st.markdown("---")
-            st.markdown("### 📈 Statut")
+            st.markdown("### 📈 Statut Système")
             
             # Statut des modèles
             model_status = self.models.get_model_status()
             if model_status["models_loaded"]:
-                st.success("✅ Modèles chargés")
+                st.success("✅ Système optimisé")
+                st.metric("Modèles chargés", model_status['loaded_models_count'])
+                
                 if st.session_state.current_result:
                     st.metric("Dernière réduction", f"{st.session_state.current_result['metrics']['reduction_percentage']}%")
-                    st.metric("Traductions", f"{st.session_state.current_result['metrics']['translations_count']}")
+                    st.metric("Temps traitement", f"{st.session_state.current_result['metrics']['processing_time']}s")
                 else:
                     st.info("🔄 Prêt pour le traitement")
             else:
-                st.error("❌ Modèles non chargés")
+                st.error("❌ Système non chargé")
             
             # Aperçu du texte chargé
             if st.session_state.extracted_text:
@@ -715,27 +758,29 @@ class SummarizationApp:
                 st.markdown("### 📝 Texte Chargé")
                 word_count = len(st.session_state.extracted_text.split())
                 st.info(f"📄 {word_count} mots")
+                
+            # Bouton de nettoyage mémoire
+            st.markdown("---")
+            if st.button("🧹 Nettoyer la mémoire", use_container_width=True):
+                self.models.cleanup_memory()
+                st.success("Mémoire nettoyée!")
             
             st.markdown("---")
             st.markdown("""
             <div style='text-align: center; color: #666; font-size: 0.8rem;'>
-                Support: Français, Anglais, Espagnol, Allemand, Arabe
+                v2.0 Optimisé • Gestion mémoire avancée
             </div>
             """, unsafe_allow_html=True)
         
         # Contenu principal selon la section
         if section == "🏠 Accueil":
             self.home_section()
-            
         elif section == "📂 Charger Article":
             self.input_section()
-                
         elif section == "📊 Résultats":
             self.results_section()
-            
         elif section == "🕒 Historique":
             self.history_section()
-            
         elif section == "🔧 Info Modèles":
             self.model_info_section()
 
@@ -772,37 +817,52 @@ class SummarizationApp:
         
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown("### 🏗️ Architecture des Modèles")
+            st.markdown("### 🏗️ Architecture Optimisée")
             if model_status["models_loaded"]:
-                st.success("✅ Modèles chargés avec succès")
+                st.success("✅ Système chargé avec succès")
                 st.write(f"**Device:** {model_status['device']}")
+                st.write(f"**Modèles actifs:** {model_status['loaded_models_count']}")
+                
+                # Test de santé
+                if st.button("🧪 Lancer un test de santé"):
+                    if self.health_check():
+                        st.success("✅ Tous les tests passent avec succès!")
+                    else:
+                        st.error("❌ Problème détecté dans le système")
+            
             st.markdown("""
-            **Technologies utilisées:**
-            - Transformers (Hugging Face)
-            - Modèles spécialisés par langue
-            - Traduction neuronale
-            - Résumé abstractif
+            **Optimisations:**
+            - Chargement intelligent
+            - Gestion mémoire avancée
+            - Nettoyage automatique
+            - Fallback des modèles
             """)
+            
         with col2:
-            st.markdown("### 🌍 Langues Supportées")
+            st.markdown("### 🌍 Capacités Multilingues")
             main_languages = ["français", "anglais", "espagnol", "allemand", "arabe"]
             for lang in main_languages:
                 st.write(f"• ✅ {lang.capitalize()}")
+            
             st.markdown("""
             **Fonctionnalités:**
-            - Résumé intelligent
-            - Traduction multilingue
-            - Extraction web avancée
-            - Interface adaptative
+            - Résumé contextuel
+            - Traduction précise
+            - Barre de progression
+            - Export multiple
             """)
+            
+            # Nettoyage manuel
+            if st.button("🗑️ Vider le cache mémoire", key="clear_cache"):
+                self.models.cleanup_memory()
+                st.success("Cache mémoire vidé!")
 
 # Lancement de l'application
 if __name__ == "__main__":
     try:
         app = SummarizationApp()
-        st.info("🚀 Starting SummarizationApp...")
         app.run()
-        st.success("✅ App running successfully!")
     except Exception as e:
-        st.error(f"❌ App crashed: {e}")
+        st.error(f"❌ L'application a rencontré une erreur: {e}")
+        logger.error(f"Application crash: {e}")
         st.exception(e)
