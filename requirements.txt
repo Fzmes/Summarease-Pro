@@ -1,0 +1,14 @@
+streamlit==1.28.0
+sentencepiece==0.1.99
+accelerate==0.24.1
+nltk==3.8.1
+pandas==2.1.0
+numpy==1.24.0
+tqdm==4.66.0
+torch==2.9.0
+torchaudio==2.9.0
+torchvision==0.24.0
+transformers==4.57.1
+requests==2.32.4
+beautifulsoup4==4.13.5
+requests-oauthlib==2.0.0

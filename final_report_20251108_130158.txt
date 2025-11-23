@@ -1,0 +1,95 @@
+RAPPORT FINAL - SYSTÈME DE RÉSUMÉ ET TRADUCTION
+============================================================
+
+📈 MÉTRIQUES DE PERFORMANCE
+----------------------------------------
+Date d'exécution: 2025-11-08 13:01:58
+Articles traités: 5
+Environnement: cuda
+
+📊 STATISTIQUES DES RÉSULTATS
+----------------------------------------
+Longueur moyenne originale: 300.0 mots
+Longueur moyenne des résumés: 51.4 mots
+Ratio de compression moyen: 5.8x
+
+🎯 QUALITÉ DES RÉSULTATS (ROUGE)
+----------------------------------------
+ROUGE-1: 0.532
+ROUGE-2: 0.393
+ROUGE-L: 0.396
+
+🔧 CONFIGURATION DES MODÈLES
+----------------------------------------
+Modèle de résumé: facebook/bart-large-cnn
+Modèle de traduction: Helsinki-NLP/opus-mt-en-fr
+Longueur max résumé: 150 mots
+Longueur min résumé: 40 mots
+
+📝 RÉSULTATS DÉTAILLÉS PAR ARTICLE
+============================================================
+
+ARTICLE 1
+----------------------------------------
+Titre: There's a shortage of truckers, but TuSimple thinks it has a solution: no driver needed - CNN
+Compression: 300 → 57 mots (ratio: 5.3x)
+
+RÉSUMÉ ORIGINAL (EN):
+San Diego-based TuSimple has completed about 2 million miles of road tests with its 70 prototype trucks across the US, China and Europe. The company has deals in place with two of the world's largest truck manufacturers -- Navistar in the US and Traton, Volkswagen's trucking business, in Europe -- to design and build fully autonomous models.
+
+RÉSUMÉ TRADUIT (FR):
+TuSimple, basée à San Diego, a réalisé environ 2 millions de miles de tests routiers avec ses 70 prototypes de camions aux États-Unis, en Chine et en Europe. L'entreprise a conclu des accords avec deux des plus grands constructeurs de camions au monde -- Navistar aux États-Unis et Traton, l'entreprise de camionnage de Volkswagen, en Europe -- pour concevoir et construire des modèles entièrement autonomes.
+
+============================================================
+
+ARTICLE 2
+----------------------------------------
+Titre: There's a shortage of truckers, but TuSimple thinks it has a solution: no driver needed - CNN
+Compression: 300 → 57 mots (ratio: 5.3x)
+
+RÉSUMÉ ORIGINAL (EN):
+San Diego-based TuSimple has completed about 2 million miles of road tests with its 70 prototype trucks across the US, China and Europe. The company has deals in place with two of the world's largest truck manufacturers -- Navistar in the US and Traton, Volkswagen's trucking business, in Europe -- to design and build fully autonomous models.
+
+RÉSUMÉ TRADUIT (FR):
+TuSimple, basée à San Diego, a réalisé environ 2 millions de miles de tests routiers avec ses 70 prototypes de camions aux États-Unis, en Chine et en Europe. L'entreprise a conclu des accords avec deux des plus grands constructeurs de camions au monde -- Navistar aux États-Unis et Traton, l'entreprise de camionnage de Volkswagen, en Europe -- pour concevoir et construire des modèles entièrement autonomes.
+
+============================================================
+
+ARTICLE 3
+----------------------------------------
+Titre: Bioservo's robotic 'Ironhand' could protect factory workers from injuries - CNN
+Compression: 300 → 56 mots (ratio: 5.4x)
+
+RÉSUMÉ ORIGINAL (EN):
+The "Ironhand" glove strengthens the wearer's grip, meaning they don't have to use as much force to perform repetitive manual tasks. The Swedish company describes the system as a "soft exoskeleton" MIT collaborated with Ava Robotics and the Greater Boston Food Bank to design a robot that can sanitize the floor of a 4,000-square foot warehouse.
+
+RÉSUMÉ TRADUIT (FR):
+Le gant "Ironhand" renforce l'adhérence du porteur, ce qui signifie qu'il n'a pas besoin d'utiliser autant de force pour effectuer des tâches manuelles répétitives. La société suédoise décrit le système comme un "soft exoskeleton" MIT a collaboré avec Ava Robotics et la Greater Boston Food Bank pour concevoir un robot qui peut assainir le plancher d'un entrepôt de 4 000 pieds carrés.
+
+============================================================
+
+ARTICLE 4
+----------------------------------------
+Titre: This swarm of robots gets smarter the more it works - CNN
+Compression: 300 → 49 mots (ratio: 6.1x)
+
+RÉSUMÉ ORIGINAL (EN):
+The Autonomous Mobile Robots were developed by Chinese startup Geek+. As they move around the warehouse they're guided by QR codes on the floor. MIT collaborated with Ava Robotics and the Greater Boston Food Bank to design a robot that can sanitize the floor of a 4,000-square foot warehouse.
+
+RÉSUMÉ TRADUIT (FR):
+Les robots mobiles autonomes ont été développés par la startup chinoise Geek+. En se déplaçant autour de l'entrepôt, ils sont guidés par les codes QR sur le sol. MIT a collaboré avec Ava Robotics et la Greater Boston Food Bank pour concevoir un robot qui peut assainir le plancher d'un entrepôt de 4 000 pieds carrés.
+
+============================================================
+
+ARTICLE 5
+----------------------------------------
+Titre: Russia is no longer an option for investors. These emerging markets are - CNN
+Compression: 300 → 38 mots (ratio: 7.9x)
+
+RÉSUMÉ ORIGINAL (EN):
+Several major US index providers have removed Russian stocks from indexes at a price of "zero" or "effectively zero" Trading shares of several leading US-listed Russian companies, such as search engine Yandex and telecom MTS, have been halted.
+
+RÉSUMÉ TRADUIT (FR):
+Plusieurs grands fournisseurs d'indices américains ont retiré les actions russes d'indices au prix de « zéro » ou « effectivement zéro » Les actions de négociation de plusieurs grandes sociétés russes cotées aux États-Unis, telles que le moteur de recherche Yandex et les télécommunications MTS, ont été interrompues.
+
+============================================================
