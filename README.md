@@ -12,7 +12,7 @@
 
 *Extract web content, generate intelligent summaries, and translate across 12+ languages*
 
-[Quick Start](#-quick-start) | [Features](#-features) | [How to Use](#-how-to-use) | [Supported Languages](#-supported-languages)
+[Quick Start](#-quick-start) | [Features](#-features) | [How to Use](#-how-to-use)
 
 </div>
 
