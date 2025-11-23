@@ -1,5 +1,3 @@
-You're right! The internal links in the README are broken. Here's the corrected version with proper anchor links:
-
 # SummarEase Pro 🌍
 
 <div align="center">
@@ -12,9 +10,9 @@ You're right! The internal links in the README are broken. Here's the corrected 
 
 **AI-Powered Multilingual Summarization & Translation Platform**
 
-*Extract web content • Generate intelligent summaries • Translate across 12+ languages*
+*Extract web content, generate intelligent summaries, and translate across 12+ languages*
 
-[Quick Start](#-quick-start) • [Features](#-features) • [How to Use](#-how-to-use) • [Supported Languages](#-supported-languages)
+[Quick Start](#-quick-start) | [Features](#-features) | [How to Use](#-how-to-use) | [Supported Languages](#-supported-languages)
 
 </div>
 
@@ -22,7 +20,7 @@ You're right! The internal links in the README are broken. Here's the corrected 
 
 SummarEase Pro is an advanced AI-powered web application that provides intelligent text summarization and multilingual translation capabilities. Built with state-of-the-art transformer models, it enables users to extract key information from articles, documents, and web pages, then translate the summaries into multiple languages.
 
-## ✨ Features
+## 🚀 Features
 
 ### 🤖 AI-Powered Processing
 - **Smart Summarization**: Specialized models for different languages
@@ -40,7 +38,7 @@ SummarEase Pro is an advanced AI-powered web application that provides intellige
 - **Bidirectional Translation**: Translate between any language pair
 
 ### 🎯 User Experience
-- **Beautiful Interface**: Modern Streamlit dashboard
+- **Modern Interface**: Streamlit dashboard
 - **Real-time Processing**: Live progress tracking
 - **Export Results**: Download in JSON and CSV formats
 - **History Tracking**: Review previous operations
@@ -55,7 +53,7 @@ SummarEase Pro is an advanced AI-powered web application that provides intellige
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/Fzmes/Summarease-Pro.git
+git clone https://github.com/yourusername/Summarease-Pro.git
 cd Summarease-Pro
 ```
 
@@ -76,19 +74,19 @@ streamlit run app.py
 ## 📸 How to Use
 
 ### Process Text Directly
-1. Go to "📂 Charger Article" section
-2. Select "📝 Texte Manuel"
+1. Go to "Charger Article" section
+2. Select "Texte Manuel"
 3. Paste your text and configure options
-4. Click "🚀 Lancer le Résumé et la Traduction"
+4. Click "Lancer le Résumé et la Traduction"
 
 ### Extract Web Content
-1. Select "🔗 Lien Web" 
+1. Select "Lien Web" 
 2. Enter article URL (Wikipedia, news sites, blogs)
-3. Click "🌐 Extraire le contenu"
+3. Click "Extraire le contenu"
 4. Process the extracted content
 
 ### Upload Files
-1. Choose "📄 Fichier Texte"
+1. Choose "Fichier Texte"
 2. Upload .txt files
 3. View preview and process
 
@@ -96,27 +94,27 @@ streamlit run app.py
 
 | Language | Code | Summarization | Translation |
 |----------|------|---------------|-------------|
-| Français | `fr` | ✅ Specialized | ✅ All pairs |
-| English | `en` | ✅ Specialized | ✅ All pairs |
-| Español | `es` | ✅ Available | ✅ All pairs |
-| Deutsch | `de` | ✅ Available | ✅ All pairs |
-| العربية | `ar` | ✅ Available | ✅ All pairs |
-| 中文 | `zh` | ✅ Available | ✅ All pairs |
-| 日本語 | `ja` | ✅ Available | ✅ All pairs |
+| Français | `fr` | Specialized | All pairs |
+| English | `en` | Specialized | All pairs |
+| Español | `es` | Available | All pairs |
+| Deutsch | `de` | Available | All pairs |
+| العربية | `ar` | Available | All pairs |
+| 中文 | `zh` | Available | All pairs |
+| 日本語 | `ja` | Available | All pairs |
 
 ## 🏗️ Technical Architecture
 
 ### AI Models Used
 ```
 Summarization:
-├── French: moussaKam/barthez-orangesum-abstract
-├── English: facebook/bart-large-cnn
-└── Multilingual: google/mt5-small
+- French: moussaKam/barthez-orangesum-abstract
+- English: facebook/bart-large-cnn
+- Multilingual: google/mt5-small
 
 Translation:
-├── M2M100: facebook/m2m100_418M (100 languages)
-├── MBART-50: facebook/mbart-large-50-many-to-many-mmt
-└── MarianMT: Helsinki-NLP specialized models
+- M2M100: facebook/m2m100_418M (100 languages)
+- MBART-50: facebook/mbart-large-50-many-to-many-mmt
+- MarianMT: Helsinki-NLP specialized models
 ```
 
 ### Core Components
@@ -197,7 +195,7 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 - **Issues**: Open a GitHub issue
 - **Questions**: Use the discussions section
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **Hugging Face** for transformer models
 - **Streamlit** for the web framework
@@ -220,16 +218,8 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 ## 📞 Contact
 
-Have questions or suggestions? Feel free to reach out through GitHub issues or discussions!
+Have questions or suggestions? Feel free to reach out through GitHub issues or discussions.
 
 ---
 
-**Happy Summarizing!** 📚✨
-
-## 🔗 Important Notes
-
-- **GitHub Repository**: `https://github.com/Fzmes/Summarease-Pro.git`
-- **Main File**: `app.py`
-- **Requirements**: `requirements.txt`
-
-**Now the navigation links at the top should work properly!** The anchor links match the section headers exactly.
+**Happy Summarizing!** 📚
