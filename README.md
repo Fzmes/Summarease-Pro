@@ -1,3 +1,5 @@
+You're right! The internal links in the README are broken. Here's the corrected version with proper anchor links:
+
 # SummarEase Pro 🌍
 
 <div align="center">
@@ -12,7 +14,7 @@
 
 *Extract web content • Generate intelligent summaries • Translate across 12+ languages*
 
-[Installation](#-installation) • [Features](#-features) • [Usage](#-usage) • [Languages](#-languages)
+[Quick Start](#-quick-start) • [Features](#-features) • [How to Use](#-how-to-use) • [Supported Languages](#-supported-languages)
 
 </div>
 
@@ -223,3 +225,11 @@ Have questions or suggestions? Feel free to reach out through GitHub issues or d
 ---
 
 **Happy Summarizing!** 📚✨
+
+## 🔗 Important Notes
+
+- **GitHub Repository**: `https://github.com/Fzmes/Summarease-Pro.git`
+- **Main File**: `app.py`
+- **Requirements**: `requirements.txt`
+
+**Now the navigation links at the top should work properly!** The anchor links match the section headers exactly.
