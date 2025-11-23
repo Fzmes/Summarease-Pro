@@ -537,36 +537,3 @@ class ExtendedMultilingualModels:
 # Instance globale
 def get_multilingual_models():
     return ExtendedMultilingualModels()
-
-"""
-if __name__ == "__main__":
-    # Test des nouvelles langues
-    models = ExtendedMultilingualModels()
-    print("🔧 Statut des modèles étendus:", models.get_model_status())
-
-    test_text =
-    Lintelligence artificielle transforme radicalement notre société.
-    Les avancées récentes dans le domaine du deep learning ont permis
-    des progrès significatifs dans la compréhension du langage naturel.
-    Les modèles comme GPT-4 et BART démontrent des capacités impressionnantes
-    dans des tâches complexes de génération et de résumé de texte.
-    
-
-    # Test multilingue
-    languages_to_test = ["allemand", "arabe", "espagnol", "anglais"]
-
-    for target_lang in languages_to_test:
-        try:
-            print(f"\n🎯 Test français -> {target_lang}")
-            summary = models.summarize_text(test_text, "français", "moyen")
-            translation = models.translate_text(summary, "français", target_lang)
-            print(f"📄 Résumé ({target_lang}): {translation}")
-
-        except Exception as e:
-            print(f"❌ Erreur pour {target_lang}: {e}")
-
-    # Test de scraping web
-    print("\n🌐 Test de scraping web...")
-    test_url = "https://example.com"
-    scraped_content = models.scrape_web_content(test_url)
-    print(f"📝 Contenu scrapé (premiers 500 caractères): {scraped_content[:500]}...")"""
