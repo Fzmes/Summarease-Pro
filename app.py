@@ -10,7 +10,6 @@ try:
     PLOTLY_AVAILABLE = True
 except ImportError:
     PLOTLY_AVAILABLE = False
-    # Create dummy functions to avoid errors
     class DummyPlotly:
         def __getattr__(self, name):
             return lambda *args, **kwargs: None
@@ -26,780 +25,840 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Import des modèles multilingues avancés
+# Import des modèles scientifiques
 from models import get_multilingual_models
 
 @st.cache_resource
 def load_models():
     return get_multilingual_models()
 
-# Configuration de la page
+# Configuration de la page pour documents longs
 st.set_page_config(
-    page_title="Résumé & Traduction d'Articles",
-    page_icon="📚",
+    page_title="Scientific Article Summarizer Pro",
+    page_icon="🔬",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# CSS personnalisé
+# CSS personnalisé pour interface scientifique
 st.markdown("""
 <style>
     .main-header {
-        font-size: 2.5rem;
-        color: #1f77b4;
+        font-size: 2.8rem;
+        color: #2E86AB;
         text-align: center;
         margin-bottom: 2rem;
         font-weight: bold;
+        background: linear-gradient(135deg, #2E86AB 0%, #A23B72 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
     }
     .section-header {
-        font-size: 1.5rem;
-        color: #5078C8;
+        font-size: 1.6rem;
+        color: #2E86AB;
         margin-bottom: 1rem;
-        border-bottom: 2px solid #7ffbff;
+        border-bottom: 3px solid #2E86AB;
         padding-bottom: 0.5rem;
+        font-weight: 600;
+    }
+    .scientific-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+        margin: 1rem 0;
+        border-left: 5px solid #2E86AB;
+        border-right: 1px solid #e0e0e0;
     }
     .metric-card {
-        background-color: #f0f2f6;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
         padding: 1rem;
         border-radius: 10px;
-        border-left: 4px solid #7ffbff;
-        margin: 0.5rem 0;
+        text-align: center;
+        margin: 0.5rem;
     }
-    .result-card {
-        background-color: white;
+    .processing-card {
+        background: #f8f9fa;
         padding: 1.5rem;
         border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border: 2px dashed #2E86AB;
         margin: 1rem 0;
-        border: 1px solid #e0e0e0;
     }
-    .translation-card {
-        background-color: white;
-        padding: 1.5rem;
-        border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        margin: 0.5rem 0;
-        border-left: 4px solid #7ffbff;
+    .warning-card {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1rem 0;
+    }
+    .success-card {
+        background: #d1ecf1;
+        border: 1px solid #bee5eb;
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1rem 0;
     }
     .arabic-text {
         text-align: right;
         direction: rtl;
         font-family: 'Arial', sans-serif;
+        line-height: 2;
     }
-    .action-button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    .scientific-button {
+        background: linear-gradient(135deg, #2E86AB 0%, #A23B72 100%);
         color: white;
         border: none;
-        padding: 12px 24px;
-        border-radius: 8px;
+        padding: 14px 28px;
+        border-radius: 10px;
         font-size: 16px;
         font-weight: bold;
         cursor: pointer;
         transition: all 0.3s ease;
+        margin: 0.5rem 0;
     }
-    .action-button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    .scientific-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(46, 134, 171, 0.4);
     }
-    .extraction-success {
-        background-color: #d4edda;
-        border: 1px solid #c3e6cb;
-        border-radius: 8px;
-        padding: 1rem;
+    .sidebar-scientific {
+        background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
+    }
+    .file-upload-box {
+        border: 2px dashed #2E86AB;
+        border-radius: 10px;
+        padding: 2rem;
+        text-align: center;
         margin: 1rem 0;
+        background: #f8f9fa;
     }
-    .sidebar .sidebar-content {
-        background-color: #f8f9fa;
-    }
-    .progress-bar {
-        margin: 1rem 0;
+    .domain-tag {
+        background: #2E86AB;
+        color: white;
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        margin: 0.2rem;
+        display: inline-block;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Couleurs
-PRIMARY_COLOR = "#7ffbff"
-
-class SummarizationApp:
+class ScientificSummarizationApp:
     def __init__(self):
         self.init_session_state()
-        with st.spinner("Chargement des modèles optimisés..."):
+        with st.spinner("🔬 Chargement des modèles scientifiques pour documents longs..."):
             try:
                 self.models = load_models()
-                # Chargement uniquement des modèles essentiels
-                if self.models.load_essential_models():
-                    st.success("✅ Modèles essentiels chargés avec succès")
+                if self.models.models_loaded:
+                    st.success("✅ **Système scientifique chargé avec succès**")
+                    st.info("🎯 **Optimisé pour: Articles scientifiques, Recherches, Documents longs (1-90 pages)**")
                 else:
-                    st.error("❌ Erreur lors du chargement des modèles")
+                    st.error("❌ Erreur lors du chargement des modèles scientifiques")
             except Exception as e:
-                st.error(f"❌ Erreur critique lors du chargement: {e}")
+                st.error(f"❌ Erreur critique: {e}")
                 logger.error(f"Erreur d'initialisation: {e}")
 
-        
     def init_session_state(self):
-        """Initialise l'état de la session"""
+        """Initialise l'état de la session pour documents scientifiques"""
         default_states = {
-            'history': [],
-            'current_result': None,
-            'auto_demo': False,
-            'processing_complete': False,
-            'extracted_text': "",
-            'show_processing_options': False,
-            'url_content': "",
-            'processing_step': 0
+            'scientific_history': [],
+            'current_scientific_result': None,
+            'extracted_scientific_text': "",
+            'processing_step': 0,
+            'document_metadata': None,
+            'current_document_type': None,
+            'chunk_progress': 0
         }
         
         for key, value in default_states.items():
             if key not in st.session_state:
                 st.session_state[key] = value
 
-    def health_check(self):
-        """Vérifie l'état de santé des modèles - CORRIGÉ avec texte plus long"""
-        try:
-            # Texte de test plus long pour éviter l'erreur "texte trop court"
-            test_text = """
-            Ceci est un texte de test pour vérifier le bon fonctionnement des modèles de résumé et de traduction. 
-            Il contient suffisamment de contenu pour être traité par l'algorithme et assurer que tout fonctionne correctement.
-            Le système doit être capable de générer un résumé cohérent à partir de ce contenu de test.
-            """
-            result = self.models.summarize_text(test_text, "français", "court")
-            return len(result) > 0
-        except Exception as e:
-            logger.error(f"Health check failed: {e}")
-            return False
-
-    def extract_text_from_pdf_url(self, url):
-        """Tente d'extraire le texte d'un PDF en ligne"""
-        try:
-            return f"PDF détecté à l'URL: {url}\n\nPour traiter un PDF, veuillez le télécharger et l'uploader via l'option 'Fichier PDF'."
-        except Exception as e:
-            return f"Erreur avec le PDF: {str(e)}"
-
-    def scrape_web_content(self, url):
-        """Extrait le contenu d'une page web avec gestion améliorée"""
-        try:
-            # Headers pour éviter le blocage
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language': 'fr-FR,fr;q=0.8,en-US;q=0.5,en;q=0.3',
-                'Accept-Encoding': 'gzip, deflate',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-            }
-            
-            # Vérifier si c'est un PDF
-            if url.lower().endswith('.pdf'):
-                return self.extract_text_from_pdf_url(url)
-            
-            # Faire la requête
-            response = requests.get(url, headers=headers, timeout=15)
-            response.raise_for_status()
-            
-            # Vérifier le type de contenu
-            content_type = response.headers.get('content-type', '').lower()
-            if 'application/pdf' in content_type:
-                return self.extract_text_from_pdf_url(url)
-            
-            # Parser le HTML
-            soup = BeautifulSoup(response.content, 'html.parser')
-            
-            # Supprimer les éléments indésirables
-            for element in soup(["script", "style", "nav", "header", "footer", "aside"]):
-                element.decompose()
-            
-            # Essayer différentes stratégies d'extraction
-            text_parts = []
-            
-            # Stratégie 1: Contenu principal avec des sélecteurs communs
-            main_selectors = [
-                'article',
-                'main',
-                '[role="main"]',
-                '.content',
-                '.main-content',
-                '.post-content',
-                '.article-content',
-                '.entry-content'
-            ]
-            
-            for selector in main_selectors:
-                elements = soup.select(selector)
-                for element in elements:
-                    text = element.get_text(strip=True)
-                    if len(text) > 100:
-                        text_parts.append(text)
-            
-            # Stratégie 2: Tous les paragraphes si la stratégie 1 échoue
-            if not text_parts:
-                paragraphs = soup.find_all('p')
-                for p in paragraphs:
-                    text = p.get_text(strip=True)
-                    if len(text) > 50:
-                        text_parts.append(text)
-            
-            # Nettoyer et combiner le texte
-            if text_parts:
-                full_text = '\n\n'.join(text_parts)
-                full_text = re.sub(r'\s+', ' ', full_text)
-                full_text = full_text.strip()
-                
-                if len(full_text) > 100:
-                    return full_text
-                else:
-                    return "Le contenu extrait est trop court."
-            else:
-                return "Aucun contenu textuel significatif n'a pu être extrait."
-                
-        except requests.exceptions.RequestException as e:
-            return f"Erreur de connexion: {str(e)}"
-        except Exception as e:
-            return f"Erreur lors de l'extraction: {str(e)}"
-
-    def process_with_models(self, text, source_lang, target_langs, summary_length):
-        """Utilise les modèles avancés pour le résumé et la traduction"""
-        try:
-            start_time = time.time()
-            
-            # Validation et limitation du texte - CORRIGÉ : vérification caractères
-            if len(text.strip()) < 50:
-                raise ValueError("Le texte est trop court (minimum 50 caractères)")
-            
-            if len(text) > 8000:
-                st.warning("⚠️ Le texte est très long, troncation à 8000 caractères pour optimiser les performances.")
-                text = text[:8000]
-
-            # Mise à jour de la progression
-            st.session_state.processing_step = 25
-            progress_bar = st.progress(st.session_state.processing_step)
-            
-            # Étape 1: Résumé du texte
-            with st.spinner("📝 Génération du résumé..."):
-                summary = self.models.summarize_text(text, source_lang, summary_length)
-                st.session_state.processing_step = 50
-                progress_bar.progress(st.session_state.processing_step)
-
-            # Étape 2: Traductions multiples
-            translations = {}
-            translation_count = len([lang for lang in target_langs if lang != source_lang])
-            current_translation = 0
-            
-            for target_lang in target_langs:
-                if target_lang != source_lang:
-                    current_translation += 1
-                    with st.spinner(f"🌍 Traduction en {target_lang} ({current_translation}/{translation_count})..."):
-                        try:
-                            translation = self.models.translate_text(summary, source_lang, target_lang)
-                            translations[target_lang] = translation
-                            
-                            # Mise à jour progressive de la barre
-                            progress = 50 + (current_translation / translation_count) * 40
-                            st.session_state.processing_step = int(progress)
-                            progress_bar.progress(st.session_state.processing_step)
-                            
-                        except Exception as e:
-                            st.warning(f"⚠️ Traduction {source_lang}→{target_lang} échouée: {str(e)}")
-                            translations[target_lang] = f"[Erreur de traduction: {str(e)}]"
-
-            # Métriques
-            processing_time = round(time.time() - start_time, 2)
-            metrics = {
-                "original_length": len(text.split()),
-                "summary_length": len(summary.split()),
-                "reduction_percentage": round((1 - len(summary.split())/len(text.split())) * 100, 1),
-                "processing_time": processing_time,
-                "translations_count": len(translations)
-            }
-            
-            # Finalisation
-            st.session_state.processing_step = 100
-            progress_bar.progress(st.session_state.processing_step)
-            time.sleep(0.5)  # Laisse le temps de voir la barre à 100%
-            
-            return {
-                "summary": summary,
-                "translations": translations,
-                "metrics": metrics,
-                "source_lang": source_lang
-            }
-            
-        except Exception as e:
-            logger.error(f"Erreur dans process_with_models: {str(e)}")
-            st.error(f"❌ Erreur lors du traitement: {str(e)}")
-            return None
-        finally:
-            # Nettoyage mémoire après traitement
-            self.models.cleanup_memory()
-
     def home_section(self):
-        """Section d'accueil"""
-        st.markdown('<div class="main-header">SummarEase Pro</div>', unsafe_allow_html=True)
+        """Section d'accueil scientifique"""
+        st.markdown('<div class="main-header">🔬 Scientific Article Summarizer Pro</div>', unsafe_allow_html=True)
         
         st.markdown(f"""
-        <div style='text-align: center; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; color: white;'>
-            <h1 style='font-size: 2.5rem; margin-bottom: 1rem;'>Bienvenue dans SummarEase Pro</h1>
-            <p style='font-size: 1.2rem;'>Résumé & Traduction Multilingue Avancés</p>
+        <div style='text-align: center; padding: 3rem; background: linear-gradient(135deg, #2E86AB 0%, #A23B72 100%); border-radius: 20px; color: white; margin-bottom: 2rem;'>
+            <h1 style='font-size: 2.8rem; margin-bottom: 1.5rem;'>Résumé & Traduction Scientifique Avancé</h1>
+            <p style='font-size: 1.4rem; opacity: 0.9;'>Spécialisé pour les articles de recherche, thèses et documents académiques longs</p>
         </div>
         """, unsafe_allow_html=True)
         
-        # Statut des modèles
+        # Capacités du système
         model_status = self.models.get_model_status()
-        if model_status["models_loaded"]:
-            st.success("✅ **Système optimisé chargé avec succès**")
-            
-            # Test de santé - avec gestion d'erreur améliorée
-            health_status = self.health_check()
-            if health_status:
-                st.success("✅ **Test de santé réussi**")
-            else:
-                st.warning("⚠️ **Problème détecté dans les modèles**")
-            
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.markdown("### 🌍 Langues Supportées")
-                st.write("• Français • Anglais • Espagnol")
-                st.write("• Allemand • Arabe")
-            with col2:
-                st.markdown("### 🔧 Optimisations")
-                st.write("• Chargement intelligent")
-                st.write("• Gestion mémoire avancée")
-                st.write("• Traitement rapide")
-            with col3:
-                st.markdown("### ⚡ Performances")
-                st.write(f"• Device: {model_status['device'].upper()}")
-                st.write(f"• Modèles: {model_status['loaded_models_count']}")
-                st.write("• Mémoire optimisée")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.markdown("### 📚 Types de Documents")
+            st.write("• Articles de recherche")
+            st.write("• Thèses et mémoires")
+            st.write("• Documents académiques")
+            st.write("• Publications scientifiques")
+            st.write("• Rapports techniques")
+        
+        with col2:
+            st.markdown("### 🔧 Capacités Techniques")
+            st.write(f"• Contexte: {model_status['max_context_length']} tokens")
+            st.write("• Traitement hiérarchique")
+            st.write("• Découpage intelligent")
+            st.write("• Métadonnées scientifiques")
+            st.write("• Multilingue avancé")
+        
+        with col3:
+            st.markdown("### 🌍 Domaines Supportés")
+            st.write("• Médecine/Biologie")
+            st.write("• Informatique/IA")
+            st.write("• Physique/Chimie")
+            st.write("• Mathématiques")
+            st.write("• Sciences Sociales")
+
+        # Métriques système
+        st.markdown("---")
+        st.markdown("### 📊 Statut du Système Scientifique")
+        
+        status_cols = st.columns(4)
+        with status_cols[0]:
+            st.metric("Modèles Chargés", len(model_status['loaded_models']))
+        with status_cols[1]:
+            st.metric("Device", model_status['device'].upper())
+        with status_cols[2]:
+            st.metric("Contexte Max", "16K tokens")
+        with status_cols[3]:
+            st.metric("Langues", len(model_status['supported_languages']))
 
     def input_section(self):
-        """Section de chargement des articles"""
-        st.markdown('<div class="section-header">📂 Chargement de l\'Article</div>', unsafe_allow_html=True)
+        """Section de chargement pour documents scientifiques"""
+        st.markdown('<div class="section-header">📂 Chargement du Document Scientifique</div>', unsafe_allow_html=True)
         
-        # Réinitialiser l'état si nécessaire
-        if st.session_state.processing_complete:
-            st.session_state.processing_complete = False
-            st.session_state.show_processing_options = False
-            st.session_state.processing_step = 0
+        # Réinitialisation si nécessaire
+        if st.session_state.current_scientific_result:
+            st.session_state.current_scientific_result = None
 
         input_method = st.radio(
             "Méthode de saisie :",
-            ["📝 Texte Manuel", "🔗 Lien Web", "📄 Fichier Texte", "📄 Fichier PDF"],
+            ["📝 Texte Direct", "🔗 URL Scientifique", "📄 PDF Académique", "📁 Fichier Texte"],
             horizontal=True,
-            key="input_method_radio"
+            key="scientific_input_method"
         )
 
         extraction_success = False
         
-        if input_method == "📝 Texte Manuel":
+        if input_method == "📝 Texte Direct":
+            st.markdown("#### 🎯 Collage du Document Scientifique")
             input_text = st.text_area(
-                "Collez votre article ici :",
-                height=200,
-                placeholder="Collez le texte de l'article à résumer et traduire...",
-                key="manual_text_area"
+                "Collez votre article scientifique complet :",
+                height=300,
+                placeholder="Collez ici le texte complet de votre article de recherche, thèse, ou document académique...",
+                key="scientific_text_area",
+                help="Supporte jusqu'à 90 pages de texte (environ 45,000 mots)"
             )
             if input_text.strip():
-                # Vérification de la longueur minimale
-                if len(input_text.strip()) >= 50:
-                    st.session_state.extracted_text = input_text
+                word_count = len(input_text.split())
+                if word_count >= 100:
+                    st.session_state.extracted_scientific_text = input_text
                     extraction_success = True
-                    st.success("✅ Texte prêt pour le traitement!")
+                    st.success(f"✅ Document prêt! ({word_count} mots, ~{max(1, word_count//500)} pages)")
                 else:
-                    st.warning("⚠️ Le texte est trop court (minimum 50 caractères)")
+                    st.warning(f"⚠️ Texte trop court pour un document scientifique ({word_count} mots)")
             
-        elif input_method == "🔗 Lien Web":
-            st.markdown("#### 🌐 Extraction à partir d'une URL")
-            url = st.text_input("Entrez l'URL de l'article :", 
-                               placeholder="https://example.com/article",
-                               key="url_input")
+        elif input_method == "🔗 URL Scientifique":
+            st.markdown("#### 🌐 Extraction depuis une URL Scientifique")
+            url = st.text_input("Entrez l'URL de l'article scientifique :", 
+                               placeholder="https://arxiv.org/abs/... ou https://www.ncbi.nlm.nih.gov/pmc/articles/...",
+                               key="scientific_url_input")
             
-            col1, col2 = st.columns([3, 1])
-            
-            with col1:
-                if st.button("🌐 Extraire le contenu", use_container_width=True, key="extract_button"):
-                    if url:
-                        with st.spinner("Extraction du contenu web en cours..."):
-                            extracted_content = self.scrape_web_content(url)
-                            st.session_state.url_content = extracted_content
-                            
-                            if not any(error in extracted_content.lower() for error in ["erreur", "aucun contenu", "trop court", "protégé"]):
-                                if len(extracted_content.strip()) >= 50:
-                                    st.session_state.extracted_text = extracted_content
-                                    extraction_success = True
-                                    st.markdown('<div class="extraction-success">✅ Contenu extrait avec succès!</div>', unsafe_allow_html=True)
-                                    
-                                    with st.expander("📄 Aperçu du contenu extrait", expanded=True):
-                                        word_count = len(extracted_content.split())
-                                        char_count = len(extracted_content)
-                                        st.metric("Nombre de mots", word_count)
-                                        st.metric("Nombre de caractères", char_count)
-                                        st.text_area("Contenu:", 
-                                                   extracted_content[:1500] + "..." if len(extracted_content) > 1500 else extracted_content, 
-                                                   height=200, 
-                                                   key="preview_area",
-                                                   label_visibility="collapsed")
-                                else:
-                                    st.error("❌ Le contenu extrait est trop court (moins de 50 caractères)")
+            if st.button("🔍 Extraire le Contenu Scientifique", use_container_width=True, key="extract_scientific"):
+                if url:
+                    with st.spinner("🔬 Extraction du contenu scientifique..."):
+                        extracted_content = self.models.scrape_web_content(url)
+                        
+                        if not any(error in extracted_content.lower() for error in ["erreur", "insuffisant", "trop court"]):
+                            word_count = len(extracted_content.split())
+                            if word_count >= 200:
+                                st.session_state.extracted_scientific_text = extracted_content
+                                extraction_success = True
+                                
+                                with st.expander("📊 Aperçu du Document Extrait", expanded=True):
+                                    st.metric("Mots extraits", word_count)
+                                    st.metric("Pages estimées", max(1, word_count//500))
+                                    st.text_area("Extrait:", 
+                                               extracted_content[:2000] + "..." if len(extracted_content) > 2000 else extracted_content, 
+                                               height=250, 
+                                               key="scientific_preview",
+                                               label_visibility="collapsed")
                             else:
-                                st.error(f"❌ {extracted_content}")
-                    else:
-                        st.warning("⚠️ Veuillez entrer une URL valide")
+                                st.error("❌ Contenu scientifique insuffisant extrait")
+                        else:
+                            st.error(f"❌ {extracted_content}")
+                else:
+                    st.warning("⚠️ Veuillez entrer une URL valide")
             
-        elif input_method == "📄 Fichier PDF":
-            st.markdown("#### 📄 Upload de fichier PDF")
+        elif input_method == "📄 PDF Académique":
+            st.markdown("#### 📄 Upload de PDF Scientifique")
+            st.markdown('<div class="file-upload-box">', unsafe_allow_html=True)
             uploaded_pdf = st.file_uploader(
-                "Téléchargez un fichier PDF",
+                "Déposez votre PDF scientifique ici",
                 type=['pdf'],
-                key="pdf_uploader",
-                help="Supporte les fichiers .pdf"
+                key="scientific_pdf_uploader",
+                help="Supporte les PDFs de recherche, thèses, articles (max 90 pages)"
             )
+            st.markdown('</div>', unsafe_allow_html=True)
 
             if uploaded_pdf:
                 try:
-                    text_content = ""
-                    with pdfplumber.open(uploaded_pdf) as pdf:
-                        for page in pdf.pages:
-                            extracted = page.extract_text()
-                            if extracted:
-                                text_content += extracted + "\n\n"
+                    with st.spinner("📖 Extraction du texte du PDF..."):
+                        text_content = ""
+                        with pdfplumber.open(uploaded_pdf) as pdf:
+                            total_pages = len(pdf.pages)
+                            progress_bar = st.progress(0)
+                            
+                            for i, page in enumerate(pdf.pages):
+                                extracted = page.extract_text()
+                                if extracted:
+                                    text_content += extracted + "\n\n"
+                                progress_bar.progress((i + 1) / total_pages)
 
-                    if len(text_content.strip()) < 50:  # Corrigé : 50 caractères au lieu de 20
-                        st.error("❌ Le fichier PDF ne contient pas assez de texte extractible (minimum 50 caractères).")
-                    else:
-                        st.session_state.extracted_text = text_content
-                        extraction_success = True
-                        st.success(f"✅ PDF '{uploaded_pdf.name}' extrait avec succès !")
+                        word_count = len(text_content.split())
+                        
+                        if word_count >= 200:
+                            st.session_state.extracted_scientific_text = text_content
+                            extraction_success = True
+                            
+                            st.success(f"✅ PDF '{uploaded_pdf.name}' extrait avec succès!")
+                            st.info(f"📊 Document: {word_count} mots, {total_pages} pages")
 
-                        with st.expander("📄 Aperçu du PDF extrait"):
-                            word_count = len(text_content.split())
-                            char_count = len(text_content)
-                            st.metric("Nombre de mots", word_count)
-                            st.metric("Nombre de caractères", char_count)
-                            st.text_area(
-                                "Contenu extrait :",
-                                text_content[:1500] + "..." if len(text_content) > 1500 else text_content,
-                                height=200,
-                                label_visibility="collapsed"
-                            )
+                            with st.expander("🔍 Aperçu du PDF", expanded=False):
+                                col1, col2 = st.columns(2)
+                                with col1:
+                                    st.metric("Pages", total_pages)
+                                    st.metric("Mots", word_count)
+                                with col2:
+                                    st.metric("Caractères", len(text_content))
+                                    st.metric("Pages estimées", max(1, word_count//500))
+                                
+                                st.text_area("Contenu extrait :",
+                                           text_content[:2500] + "..." if len(text_content) > 2500 else text_content,
+                                           height=300,
+                                           label_visibility="collapsed")
+
+                        else:
+                            st.error("❌ Le PDF ne contient pas assez de texte lisible")
 
                 except Exception as e:
                     st.error(f"❌ Erreur lors de la lecture du PDF : {str(e)}")
-    
+        
         else:  # Fichier Texte
-            st.markdown("#### 📄 Upload de fichier")
-            uploaded_file = st.file_uploader("Téléchargez un fichier texte", 
-                                           type=['txt'], 
-                                           key="file_uploader",
-                                           help="Supporte les fichiers .txt")
+            st.markdown("#### 📁 Upload de Fichier Texte")
+            uploaded_file = st.file_uploader("Téléchargez votre document texte", 
+                                           type=['txt', 'docx'], 
+                                           key="scientific_file_uploader",
+                                           help="Supporte .txt et .docx")
             if uploaded_file:
                 try:
                     if uploaded_file.type == "text/plain":
                         input_text = uploaded_file.getvalue().decode("utf-8")
-                        if len(input_text.strip()) >= 50:
-                            st.session_state.extracted_text = input_text
-                            extraction_success = True
-                            st.success(f"✅ Fichier '{uploaded_file.name}' chargé avec succès!")
-                            
-                            with st.expander("📄 Aperçu du fichier"):
-                                word_count = len(input_text.split())
-                                char_count = len(input_text)
-                                st.metric("Nombre de mots", word_count)
-                                st.metric("Nombre de caractères", char_count)
-                                st.text_area("Contenu:", 
-                                           input_text[:1500] + "..." if len(input_text) > 1500 else input_text, 
-                                           height=200,
-                                           label_visibility="collapsed")
-                        else:
-                            st.warning("⚠️ Le fichier contient moins de 50 caractères")
-                            
+                    else:
+                        # Pour .docx, on utiliserait python-docx, mais pour simplifier:
+                        input_text = "Contenu DOCX - Veuillez utiliser le format PDF ou texte simple."
+                    
+                    word_count = len(input_text.split())
+                    if word_count >= 100:
+                        st.session_state.extracted_scientific_text = input_text
+                        extraction_success = True
+                        st.success(f"✅ Fichier scientifique chargé! ({word_count} mots)")
+                    else:
+                        st.warning("⚠️ Le fichier contient moins de 100 mots")
+                        
                 except Exception as e:
-                    st.error(f"❌ Erreur lors du chargement du fichier: {str(e)}")
+                    st.error(f"❌ Erreur lors du chargement: {str(e)}")
         
-        # Afficher les options de traitement si du texte est disponible
-        if st.session_state.extracted_text and extraction_success:
-            st.session_state.show_processing_options = True
-        
-        if st.session_state.show_processing_options:
-            self.show_processing_options()
+        # Afficher les options de traitement scientifique si du texte est disponible
+        if st.session_state.extracted_scientific_text and extraction_success:
+            self.show_scientific_processing_options()
         
         return None
 
-    def show_processing_options(self):
-        """Affiche les options de traitement après chargement du texte"""
+    def show_scientific_processing_options(self):
+        """Affiche les options de traitement scientifique"""
         st.markdown("---")
-        st.markdown('<div class="section-header">⚙️ Options de Traitement</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header">⚗️ Options de Traitement Scientifique</div>', unsafe_allow_html=True)
+        
+        # Analyse préliminaire du document
+        with st.spinner("🔍 Analyse du document..."):
+            metadata = self.models.extract_scientific_metadata(st.session_state.extracted_scientific_text)
+            st.session_state.document_metadata = metadata
+        
+        # Affichage des métadonnées
+        st.markdown("#### 📋 Analyse du Document")
+        meta_cols = st.columns(4)
+        with meta_cols[0]:
+            st.metric("Mots", metadata['word_count'])
+        with meta_cols[1]:
+            st.metric("Pages estimées", metadata['estimated_pages'])
+        with meta_cols[2]:
+            st.metric("Langue", metadata['language'])
+        with meta_cols[3]:
+            st.metric("Sections", len(metadata['sections_present']))
+        
+        # Domaines détectés
+        if metadata['domains']:
+            st.write("**Domaines détectés:**")
+            for domain in metadata['domains']:
+                st.markdown(f'<span class="domain-tag">{domain}</span>', unsafe_allow_html=True)
         
         # Configuration du traitement
+        st.markdown("#### ⚙️ Configuration du Traitement")
+        
         col1, col2, col3 = st.columns(3)
         
         with col1:
             source_lang = st.selectbox(
                 "Langue source :",
-                ["français", "anglais", "espagnol", "allemand", "arabe"],
+                ["anglais", "français", "espagnol", "allemand", "arabe"],
                 index=0,
-                help="Sélectionnez la langue du texte original",
-                key="source_lang_select"
+                help="Langue du document original",
+                key="scientific_source_lang"
             )
         
         with col2:
             target_langs = st.multiselect(
-                "Langues cibles :",
+                "Langues de traduction :",
                 ["français", "anglais", "espagnol", "allemand", "arabe"],
-                default=["anglais", "espagnol"],
-                help="Sélectionnez une ou plusieurs langues pour la traduction",
-                key="target_langs_multiselect"
+                default=["français", "anglais"],
+                help="Traduire le résumé dans ces langues",
+                key="scientific_target_langs"
             )
         
         with col3:
-            summary_length = st.select_slider(
-                "Longueur du résumé :",
-                options=["court", "moyen", "long"],
-                value="moyen",
-                key="summary_length_slider"
+            summary_type = st.selectbox(
+                "Type de résumé :",
+                ["structured", "abstract", "key_points", "comprehensive"],
+                format_func=lambda x: {
+                    "structured": "📊 Structuré (Recommandé)",
+                    "abstract": "📋 Abstract",
+                    "key_points": "🎯 Points Clés", 
+                    "comprehensive": "🔍 Complet"
+                }[x],
+                help="Format du résumé généré",
+                key="scientific_summary_type"
             )
         
-        # Boutons d'action
+        # Avertissement pour documents très longs
+        if metadata['word_count'] > 10000:
+            st.markdown("""
+            <div class="warning-card">
+                <strong>⚠️ Document Très Long Détecté</strong><br>
+                Ce document contient plus de 10,000 mots. Le traitement peut prendre plusieurs minutes.
+                Le système utilisera une stratégie de découpage hiérarchique pour maintenir la qualité.
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Bouton de traitement principal
         st.markdown("---")
         col1, col2, col3 = st.columns([1, 2, 1])
         
         with col2:
-            if st.button("🚀 Lancer le Résumé et la Traduction", 
+            if st.button("🚀 Lancer l'Analyse Scientifique", 
                         type="primary", 
                         use_container_width=True,
-                        key="process_main_button"):
+                        key="scientific_process_button"):
                 
                 if not target_langs:
-                    st.error("❌ Veuillez sélectionner au moins une langue cible")
+                    st.error("❌ Veuillez sélectionner au moins une langue de traduction")
                     return
                 
-                # Vérification finale de la longueur
-                if len(st.session_state.extracted_text.strip()) < 50:
-                    st.error("❌ Le texte est trop court pour être traité (minimum 50 caractères)")
+                # Validation finale
+                if metadata['word_count'] < 100:
+                    st.error("❌ Le document est trop court pour une analyse scientifique")
                     return
                 
-                # Réinitialiser la barre de progression
-                st.session_state.processing_step = 0
-                
-                # Lancer le traitement
-                result = self.processing_section(
-                    st.session_state.extracted_text, 
+                # Lancer le traitement scientifique
+                result = self.scientific_processing_section(
+                    st.session_state.extracted_scientific_text, 
                     source_lang, 
                     target_langs, 
-                    summary_length
+                    summary_type
                 )
                 
                 if result:
-                    st.session_state.current_result = result
-                    st.session_state.current_section = "📊 Résultats"
+                    st.session_state.current_scientific_result = result
                     st.rerun()
                 else:
-                    st.error("❌ Le traitement a échoué. Veuillez réessayer avec un texte différent.")
+                    st.error("❌ L'analyse scientifique a échoué")
 
-    def processing_section(self, input_text, source_lang, target_langs, summary_length):
-        """Section de traitement avec les modèles avancés"""
+    def scientific_processing_section(self, text: str, source_lang: str, target_langs: List[str], summary_type: str):
+        """Traitement scientifique avec progression détaillée"""
         try:
-            # Afficher la barre de progression
+            # Interface de progression
             progress_placeholder = st.empty()
             with progress_placeholder.container():
-                st.markdown("#### 📊 Progression du traitement")
-                progress_bar = st.progress(st.session_state.processing_step)
+                st.markdown("#### 🔬 Progression de l'Analyse Scientifique")
+                
+                # Barres de progression multiples
+                main_progress = st.progress(0)
+                chunk_progress = st.progress(0)
                 status_text = st.empty()
-
-            # Traitement avec les modèles
-            result = self.process_with_models(input_text, source_lang, target_langs, summary_length)
+                
+                steps = [
+                    "📖 Préparation du document...",
+                    "🔍 Extraction des métadonnées...", 
+                    "📝 Génération du résumé...",
+                    "🌍 Traductions scientifiques...",
+                    "📊 Finalisation..."
+                ]
             
-            if result:
-                st.session_state.current_result = result
-                st.session_state.history.append({
-                    "timestamp": datetime.now(),
-                    "input": input_text[:100] + "..." if len(input_text) > 100 else input_text,
-                    "result": result
-                })
-                st.session_state.processing_complete = True
-                return result
+            # Étape 1: Préparation
+            status_text.text(steps[0])
+            main_progress.progress(10)
+            time.sleep(0.5)
             
-            return None
+            # Étape 2: Résumé scientifique
+            status_text.text(steps[2])
+            main_progress.progress(30)
+            
+            with st.spinner("🎯 Génération du résumé scientifique..."):
+                result = self.models.summarize_long_article(text, source_lang, summary_type)
+                main_progress.progress(60)
+            
+            # Étape 3: Traductions
+            status_text.text(steps[3])
+            translation_count = len([lang for lang in target_langs if lang != source_lang])
+            
+            if translation_count > 0:
+                translations = {}
+                for i, target_lang in enumerate(target_langs):
+                    if target_lang != source_lang:
+                        status_text.text(f"🌍 Traduction scientifique en {target_lang} ({i+1}/{translation_count})...")
+                        try:
+                            translation = self.models.translate_scientific_text(
+                                result["summary"], source_lang, target_lang
+                            )
+                            translations[target_lang] = translation
+                            
+                            # Mise à jour de la progression
+                            progress = 60 + (i / translation_count) * 30
+                            main_progress.progress(int(progress))
+                            
+                        except Exception as e:
+                            st.warning(f"⚠️ Traduction {source_lang}→{target_lang} échouée: {str(e)}")
+                            translations[target_lang] = f"[Erreur: {str(e)}]"
+                
+                result["translations"] = translations
+            
+            # Finalisation
+            status_text.text(steps[4])
+            main_progress.progress(95)
+            
+            # Ajout des métadonnées
+            result["metadata"] = st.session_state.document_metadata
+            result["processing_timestamp"] = datetime.now()
+            
+            main_progress.progress(100)
+            status_text.text("✅ Analyse scientifique terminée!")
+            
+            time.sleep(1)
+            
+            # Ajout à l'historique
+            st.session_state.scientific_history.append({
+                "timestamp": datetime.now(),
+                "metadata": st.session_state.document_metadata,
+                "result": result
+            })
+            
+            return result
             
         except Exception as e:
-            st.error(f"Erreur lors du traitement: {str(e)}")
-            logger.error(f"Processing error: {str(e)}")
+            st.error(f"❌ Erreur lors du traitement scientifique: {str(e)}")
+            logger.error(f"Scientific processing error: {str(e)}")
             return None
         finally:
-            # Nettoyer la mémoire
+            # Nettoyage mémoire
             self.models.cleanup_memory()
 
     def results_section(self):
-        """Section d'affichage des résultats multilingues"""
-        if not st.session_state.current_result:
-            st.info("ℹ️ Aucun résultat à afficher. Veuillez d'abord traiter un article.")
-            st.markdown("""
-            <div style='text-align: center; padding: 3rem; background: #f8f9fa; border-radius: 10px;'>
-                <h3 style='color: #666;'>📝 En attente de texte</h3>
-                <p>Utilisez l'onglet "📂 Charger Article" pour traiter votre premier texte.</p>
-            </div>
-            """, unsafe_allow_html=True)
+        """Section des résultats scientifiques"""
+        if not st.session_state.current_scientific_result:
+            st.info("""
+            ### 🔬 En attente de document scientifique
+            Utilisez l'onglet **"📂 Charger Document"** pour analyser votre premier article de recherche.
+            
+            **Documents supportés:**
+            - Articles de recherche (PDF, texte)
+            - Thèses et mémoires  
+            - Publications académiques
+            - Documents techniques longs (1-90 pages)
+            """)
             return
         
-        result = st.session_state.current_result
+        result = st.session_state.current_scientific_result
         
-        # Métriques principales
-        st.markdown("#### 📊 Métriques de Performance")
-        col1, col2, col3, col4 = st.columns(4)
+        # En-tête des résultats
+        st.markdown("### 📊 Résultats de l'Analyse Scientifique")
         
-        with col1:
-            st.metric("Longueur originale", f"{result['metrics']['original_length']} mots")
+        # Métriques détaillées
+        st.markdown("#### 📈 Métriques du Document")
+        meta_cols = st.columns(5)
         
-        with col2:
-            st.metric("Longueur résumé", f"{result['metrics']['summary_length']} mots")
+        with meta_cols[0]:
+            st.metric("Mots originaux", result["metadata"]["word_count"])
+        with meta_cols[1]:
+            st.metric("Mots résumé", len(result["summary"].split()))
+        with meta_cols[2]:
+            reduction = result["original_metrics"]["reduction_percentage"] if "reduction_percentage" in result["original_metrics"] else round((1 - len(result["summary"].split())/result["metadata"]["word_count"]) * 100, 1)
+            st.metric("Compression", f"{reduction}%")
+        with meta_cols[3]:
+            st.metric("Pages estimées", result["metadata"]["estimated_pages"])
+        with meta_cols[4]:
+            st.metric("Stratégie", result.get("processing_strategy", "standard"))
         
-        with col3:
-            st.metric("Réduction", f"{result['metrics']['reduction_percentage']}%")
-        
-        with col4:
-            st.metric("Temps traitement", f"{result['metrics']['processing_time']}s")
-        
-        # Résumé original
-        st.markdown("#### 📄 Résumé Généré")
-        st.markdown(f'<div class="result-card">{result["summary"]}</div>', unsafe_allow_html=True)
-        
-        # Traductions multilingues
-        if result['translations']:
-            st.markdown("#### 🌐 Traductions Multilingues")
-            translations = list(result['translations'].items())
-            num_cols = 2
+        # Domaines et mots-clés
+        if result["metadata"]["domains"] or result["metadata"]["keywords"]:
+            st.markdown("#### 🔍 Métadonnées Scientifiques")
+            col1, col2 = st.columns(2)
             
-            for i in range(0, len(translations), num_cols):
-                cols = st.columns(num_cols)
-                for j in range(num_cols):
-                    if i + j < len(translations):
-                        lang, text = translations[i + j]
-                        with cols[j]:
-                            if lang == "arabe":
-                                st.markdown(
-                                    f'<div class="translation-card arabic-text">'
-                                    f'<strong>🌍 {lang.capitalize()}</strong><br>{text}'
-                                    f'</div>', 
-                                    unsafe_allow_html=True
-                                )
-                            else:
-                                st.markdown(
-                                    f'<div class="translation-card">'
-                                    f'<strong>🌍 {lang.capitalize()}</strong><br>{text}'
-                                    f'</div>', 
-                                    unsafe_allow_html=True
-                                )
+            with col1:
+                st.write("**Domaines détectés:**")
+                for domain in result["metadata"]["domains"]:
+                    st.markdown(f'<span class="domain-tag">{domain}</span>', unsafe_allow_html=True)
+            
+            with col2:
+                st.write("**Mots-clés principaux:**")
+                for keyword in result["metadata"]["keywords"][:8]:
+                    st.write(f"• {keyword}")
         
-        # Actions supplémentaires
+        # Résumé scientifique
+        st.markdown("#### 📄 Résumé Scientifique Généré")
+        st.markdown(f'<div class="scientific-card">{result["summary"]}</div>', unsafe_allow_html=True)
+        
+        # Traductions scientifiques
+        if "translations" in result and result["translations"]:
+            st.markdown("#### 🌐 Traductions Scientifiques")
+            translations = list(result["translations"].items())
+            
+            for lang, text in translations:
+                with st.expander(f"🌍 {lang.capitalize()}", expanded=(lang == "français")):
+                    if lang == "arabe":
+                        st.markdown(f'<div class="scientific-card arabic-text">{text}</div>', unsafe_allow_html=True)
+                    else:
+                        st.markdown(f'<div class="scientific-card">{text}</div>', unsafe_allow_html=True)
+        
+        # Actions d'export
         st.markdown("#### 💾 Export des Résultats")
-        col1, col2, col3 = st.columns(3)
+        exp_col1, exp_col2, exp_col3 = st.columns(3)
         
-        with col1:
-            if st.button("📥 Télécharger JSON", use_container_width=True):
-                self.download_json(result)
+        with exp_col1:
+            if st.button("📥 Télécharger Rapport Complet", use_container_width=True):
+                self.download_scientific_report(result)
         
-        with col2:
-            if st.button("📊 Télécharger CSV", use_container_width=True):
-                self.download_csv(result)
+        with exp_col2:
+            if st.button("🔢 Exporter Métadonnées", use_container_width=True):
+                self.export_scientific_metadata(result)
         
-        with col3:
-            if st.button("🔄 Nouveau traitement", use_container_width=True):
-                self.models.cleanup_memory()
-                st.session_state.current_result = None
-                st.session_state.extracted_text = ""
-                st.session_state.show_processing_options = False
-                st.session_state.processing_step = 0
-                st.rerun()
+        with exp_col3:
+            if st.button("🔄 Nouvelle Analyse", use_container_width=True):
+                self.reset_scientific_analysis()
 
-    def download_json(self, result):
-        """Télécharge les résultats en JSON"""
-        json_str = json.dumps(result, ensure_ascii=False, indent=2)
-        b64 = base64.b64encode(json_str.encode()).decode()
-        href = f'<a href="data:application/json;base64,{b64}" download="resultats_multilingues.json">Télécharger JSON</a>'
-        st.markdown(href, unsafe_allow_html=True)
-
-    def download_csv(self, result):
-        """Télécharge les métriques en CSV"""
-        data = {
-            'original_length': [result['metrics']['original_length']],
-            'summary_length': [result['metrics']['summary_length']],
-            'reduction_percentage': [result['metrics']['reduction_percentage']],
-            'translations_count': [result['metrics']['translations_count']],
-            'processing_time': [result['metrics']['processing_time']]
+    def download_scientific_report(self, result):
+        """Télécharge un rapport scientifique complet"""
+        report = {
+            "scientific_analysis_report": {
+                "timestamp": result["processing_timestamp"].isoformat() if "processing_timestamp" in result else datetime.now().isoformat(),
+                "document_metrics": result["metadata"],
+                "summary": result["summary"],
+                "translations": result.get("translations", {}),
+                "processing_strategy": result.get("processing_strategy", "standard"),
+                "sections_analyzed": result.get("sections_analyzed", [])
+            }
         }
         
-        for lang, text in result['translations'].items():
-            data[f'traduction_{lang}'] = [text]
-        
-        metrics_df = pd.DataFrame(data)
-        csv = metrics_df.to_csv(index=False, encoding='utf-8')
-        b64 = base64.b64encode(csv.encode()).decode()
-        href = f'<a href="data:text/csv;base64,{b64}" download="resultats_multilingues.csv">Télécharger CSV</a>'
+        json_str = json.dumps(report, ensure_ascii=False, indent=2, default=str)
+        b64 = base64.b64encode(json_str.encode()).decode()
+        href = f'<a href="data:application/json;base64,{b64}" download="rapport_scientifique.json">📥 Télécharger le rapport JSON</a>'
         st.markdown(href, unsafe_allow_html=True)
 
-    def run(self):
-        """Exécute l'application principale"""
+    def export_scientific_metadata(self, result):
+        """Exporte les métadonnées scientifiques"""
+        metadata_df = pd.DataFrame([{
+            'domain': ', '.join(result["metadata"]["domains"]),
+            'keywords': ', '.join(result["metadata"]["keywords"][:10]),
+            'word_count': result["metadata"]["word_count"],
+            'pages': result["metadata"]["estimated_pages"],
+            'language': result["metadata"]["language"],
+            'sections': len(result["metadata"]["sections_present"]),
+            'compression_rate': f"{round((1 - len(result['summary'].split())/result['metadata']['word_count']) * 100, 1)}%"
+        }])
         
-        # Menu latéral
+        csv = metadata_df.to_csv(index=False, encoding='utf-8')
+        b64 = base64.b64encode(csv.encode()).decode()
+        href = f'<a href="data:text/csv;base64,{b64}" download="metadonnees_scientifiques.csv">📊 Exporter les métadonnées CSV</a>'
+        st.markdown(href, unsafe_allow_html=True)
+
+    def reset_scientific_analysis(self):
+        """Réinitialise l'analyse scientifique"""
+        self.models.cleanup_memory()
+        st.session_state.current_scientific_result = None
+        st.session_state.extracted_scientific_text = ""
+        st.session_state.document_metadata = None
+        st.rerun()
+
+    def history_section(self):
+        """Section historique des analyses scientifiques"""
+        st.markdown('<div class="section-header">🕒 Historique des Analyses Scientifiques</div>', unsafe_allow_html=True)
+        
+        if not st.session_state.scientific_history:
+            st.info("""
+            ### 📚 Aucune analyse enregistrée
+            Les analyses scientifiques que vous effectuerez seront sauvegardées ici pour référence future.
+            
+            **Chaque analyse conserve:**
+            - Les métadonnées du document
+            - Le résumé généré
+            - Les traductions
+            - La stratégie de traitement utilisée
+            """)
+            return
+        
+        # Affichage de l'historique
+        for i, entry in enumerate(reversed(st.session_state.scientific_history[-10:])):
+            with st.expander(f"🔬 Analyse du {entry['timestamp'].strftime('%d/%m/%Y à %H:%M')}", expanded=(i==0)):
+                col1, col2 = st.columns([1, 2])
+                
+                with col1:
+                    st.write("**📊 Métriques:**")
+                    st.metric("Mots", entry['metadata']['word_count'])
+                    st.metric("Pages", entry['metadata']['estimated_pages'])
+                    st.metric("Domaines", len(entry['metadata']['domains']))
+                    
+                    st.write("**🔍 Domaines:**")
+                    for domain in entry['metadata']['domains'][:3]:
+                        st.markdown(f'<span class="domain-tag">{domain}</span>', unsafe_allow_html=True)
+                
+                with col2:
+                    st.write("**📄 Résumé (extrait):**")
+                    st.write(entry['result']['summary'][:300] + "..." if len(entry['result']['summary']) > 300 else entry['result']['summary'])
+                    
+                    if st.button("📖 Voir l'analyse complète", key=f"view_full_{i}"):
+                        st.session_state.current_scientific_result = entry['result']
+                        st.rerun()
+
+    def model_info_section(self):
+        """Section d'information sur les modèles scientifiques"""
+        st.markdown('<div class="section-header">🔧 Informations des Modèles Scientifiques</div>', unsafe_allow_html=True)
+        
+        model_status = self.models.get_model_status()
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("### 🏗️ Architecture Scientifique")
+            if model_status["models_loaded"]:
+                st.success("✅ **Système scientifique opérationnel**")
+                st.write(f"**Device:** {model_status['device']}")
+                st.write(f"**Contexte maximum:** {model_status['max_context_length']} tokens")
+                st.write(f"**Modèles actifs:** {len(model_status['loaded_models'])}")
+                
+                st.markdown("""
+                **Optimisations scientifiques:**
+                - Traitement hiérarchique des longs documents
+                - Découpage intelligent avec chevauchement  
+                - Détection automatique des sections
+                - Extraction de métadonnées scientifiques
+                - Gestion mémoire avancée
+                """)
+            
+        with col2:
+            st.markdown("### 📚 Spécialisations")
+            st.markdown("""
+            **Documents supportés:**
+            ✅ Articles de recherche
+            ✅ Thèses et mémoires
+            ✅ Publications académiques
+            ✅ Documents techniques
+            ✅ Rapports scientifiques
+            
+            **Langues scientifiques:**
+            🇫🇷 Français
+            🇬🇧 Anglais  
+            🇪🇸 Espagnol
+            🇩🇪 Allemand
+            🇦🇪 Arabe
+            """)
+            
+            # Test de performance
+            if st.button("🧪 Test de performance scientifique", key="scientific_test"):
+                with st.spinner("Exécution du test..."):
+                    test_text = "This is a scientific test document " * 50
+                    try:
+                        start_time = time.time()
+                        result = self.models.summarize_long_article(test_text, "anglais", "structured")
+                        end_time = time.time()
+                        
+                        st.success(f"✅ Test réussi en {end_time - start_time:.2f} secondes")
+                        st.metric("Performance", f"{end_time - start_time:.2f}s")
+                    except Exception as e:
+                        st.error(f"❌ Test échoué: {e}")
+        
+        # Nettoyage mémoire
+        st.markdown("---")
+        if st.button("🗑️ Nettoyer la mémoire scientifique", use_container_width=True):
+            self.models.cleanup_memory()
+            st.success("🧹 Mémoire nettoyée pour les prochains documents scientifiques!")
+
+    def run(self):
+        """Exécute l'application scientifique"""
+        
+        # Menu latéral scientifique
         with st.sidebar:
             st.markdown("""
             <div style='text-align: center; margin-bottom: 2rem;'>
-                <h2 style='color: #5078C8;'>SummarEase Pro</h2>
-                <p>Résumé & Traduction Multilingue</p>
+                <h2 style='color: #2E86AB;'>🔬 Scientific Pro</h2>
+                <p>Analyse de Documents Scientifiques</p>
             </div>
             """, unsafe_allow_html=True)
             
             section = st.radio(
                 "Navigation :",
                 [
-                    "🏠 Accueil",
-                    "📂 Charger Article", 
+                    "🏠 Accueil Scientifique",
+                    "📂 Charger Document", 
                     "📊 Résultats",
                     "🕒 Historique",
                     "🔧 Info Modèles"
                 ],
-                key="navigation_radio"
+                key="scientific_navigation"
             )
             
             st.markdown("---")
-            st.markdown("### 📈 Statut Système")
+            st.markdown("### 📈 Statut du Document")
             
-            # Statut des modèles
-            model_status = self.models.get_model_status()
-            if model_status["models_loaded"]:
-                st.success("✅ Système optimisé")
-                st.metric("Modèles chargés", model_status['loaded_models_count'])
-                
-                if st.session_state.current_result:
-                    st.metric("Dernière réduction", f"{st.session_state.current_result['metrics']['reduction_percentage']}%")
-                    st.metric("Temps traitement", f"{st.session_state.current_result['metrics']['processing_time']}s")
-                else:
-                    st.info("🔄 Prêt pour le traitement")
+            # Statut actuel
+            if st.session_state.current_scientific_result:
+                result = st.session_state.current_scientific_result
+                st.success("✅ Analyse terminée")
+                st.metric("Compression", f"{round((1 - len(result['summary'].split())/result['metadata']['word_count']) * 100, 1)}%")
+                st.metric("Traductions", len(result.get('translations', {})))
+            elif st.session_state.extracted_scientific_text:
+                metadata = st.session_state.document_metadata or {}
+                st.info("📄 Document chargé")
+                st.metric("Mots", metadata.get('word_count', 'N/A'))
+                st.metric("Pages", metadata.get('estimated_pages', 'N/A'))
             else:
-                st.error("❌ Système non chargé")
-            
-            # Aperçu du texte chargé
-            if st.session_state.extracted_text:
-                st.markdown("---")
-                st.markdown("### 📝 Texte Chargé")
-                word_count = len(st.session_state.extracted_text.split())
-                char_count = len(st.session_state.extracted_text)
-                st.info(f"📄 {word_count} mots, {char_count} caractères")
-                
-            # Bouton de nettoyage mémoire
-            st.markdown("---")
-            if st.button("🧹 Nettoyer la mémoire", use_container_width=True):
-                self.models.cleanup_memory()
-                st.success("Mémoire nettoyée!")
+                st.info("📝 Prêt pour analyse")
             
             st.markdown("---")
             st.markdown("""
             <div style='text-align: center; color: #666; font-size: 0.8rem;'>
-                v2.1 Corrigé • Gestion mémoire avancée
+                v3.0 Scientifique • Documents longs (1-90 pages)
             </div>
             """, unsafe_allow_html=True)
         
-        # Contenu principal selon la section
-        if section == "🏠 Accueil":
+        # Contenu principal
+        if section == "🏠 Accueil Scientifique":
             self.home_section()
-        elif section == "📂 Charger Article":
+        elif section == "📂 Charger Document":
             self.input_section()
         elif section == "📊 Résultats":
             self.results_section()
@@ -808,85 +867,11 @@ class SummarizationApp:
         elif section == "🔧 Info Modèles":
             self.model_info_section()
 
-    def history_section(self):
-        """Section historique"""
-        st.markdown('<div class="section-header">🕒 Historique des Traitements</div>', unsafe_allow_html=True)
-        
-        if not st.session_state.history:
-            st.info("ℹ️ Aucun historique disponible.")
-            return
-        
-        for i, entry in enumerate(reversed(st.session_state.history[-10:])):
-            with st.expander(f"📄 Traitement du {entry['timestamp'].strftime('%d/%m/%Y %H:%M')}"):
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.write("**Entrée :**")
-                    st.write(entry['input'])
-                    st.write("**Métriques :**")
-                    st.metric("Réduction", f"{entry['result']['metrics']['reduction_percentage']}%")
-                    st.metric("Traductions", f"{entry['result']['metrics']['translations_count']}")
-                with col2:
-                    st.write("**Résumé :**")
-                    st.write(entry['result']['summary'][:200] + "...")
-                    if st.button("🔍 Voir détails", key=f"view_{i}"):
-                        st.session_state.current_result = entry['result']
-                        st.session_state.current_section = "📊 Résultats"
-                        st.rerun()
-
-    def model_info_section(self):
-        """Section d'information sur les modèles"""
-        st.markdown('<div class="section-header">🔧 Informations des Modèles</div>', unsafe_allow_html=True)
-        
-        model_status = self.models.get_model_status()
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("### 🏗️ Architecture Optimisée")
-            if model_status["models_loaded"]:
-                st.success("✅ Système chargé avec succès")
-                st.write(f"**Device:** {model_status['device']}")
-                st.write(f"**Modèles actifs:** {model_status['loaded_models_count']}")
-                
-                # Test de santé
-                if st.button("🧪 Lancer un test de santé"):
-                    if self.health_check():
-                        st.success("✅ Tous les tests passent avec succès!")
-                    else:
-                        st.error("❌ Problème détecté dans le système")
-            
-            st.markdown("""
-            **Optimisations:**
-            - Chargement intelligent
-            - Gestion mémoire avancée
-            - Nettoyage automatique
-            - Fallback des modèles
-            """)
-            
-        with col2:
-            st.markdown("### 🌍 Capacités Multilingues")
-            main_languages = ["français", "anglais", "espagnol", "allemand", "arabe"]
-            for lang in main_languages:
-                st.write(f"• ✅ {lang.capitalize()}")
-            
-            st.markdown("""
-            **Fonctionnalités:**
-            - Résumé contextuel
-            - Traduction précise
-            - Barre de progression
-            - Export multiple
-            """)
-            
-            # Nettoyage manuel
-            if st.button("🗑️ Vider le cache mémoire", key="clear_cache"):
-                self.models.cleanup_memory()
-                st.success("Cache mémoire vidé!")
-
-# Lancement de l'application
+# Lancement de l'application scientifique
 if __name__ == "__main__":
     try:
-        app = SummarizationApp()
+        app = ScientificSummarizationApp()
         app.run()
     except Exception as e:
-        st.error(f"❌ L'application a rencontré une erreur: {e}")
-        logger.error(f"Application crash: {e}")
-        st.exception(e)
+        st.error(f"❌ L'application scientifique a rencontré une erreur: {e}")
+        logger.error(f"Scientific application crash: {e}")
